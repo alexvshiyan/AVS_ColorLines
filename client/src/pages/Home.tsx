@@ -12,6 +12,8 @@ const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
 const NEXT_BALLS = 3;
 const LINE_LENGTH = 5;
+const MOVE_HOP_MS = 135;
+const READY_BOUNCE_MS = 820;
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -219,6 +221,7 @@ export default function Home() {
   const [movingBall, setMovingBall] = useState<MovingBall>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const movementTimerRef = useRef<number | null>(null);
+  const readyBounceTimerRef = useRef<number | null>(null);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -235,6 +238,7 @@ export default function Home() {
 
     return () => {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+      if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
     };
   }, []);
 
@@ -248,7 +252,7 @@ export default function Home() {
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
 
-  const playBounceSound = useCallback((variant: "select" | "hop" | "blocked" = "hop") => {
+  const playBounceSound = useCallback((variant: "ready" | "hop" | "blocked" = "hop") => {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
 
@@ -260,18 +264,18 @@ export default function Home() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const filter = context.createBiquadFilter();
-    const baseFrequency = variant === "select" ? 360 : variant === "blocked" ? 150 : 260;
-    const peakFrequency = variant === "select" ? 560 : variant === "blocked" ? 100 : 410;
-    const duration = variant === "select" ? 0.105 : variant === "blocked" ? 0.14 : 0.075;
+    const baseFrequency = variant === "ready" ? 205 : variant === "blocked" ? 150 : 278;
+    const peakFrequency = variant === "ready" ? 275 : variant === "blocked" ? 100 : 455;
+    const duration = variant === "ready" ? 0.18 : variant === "blocked" ? 0.14 : 0.105;
 
     oscillator.type = variant === "blocked" ? "triangle" : "sine";
     oscillator.frequency.setValueAtTime(baseFrequency, now);
     oscillator.frequency.exponentialRampToValueAtTime(peakFrequency, now + duration * 0.36);
     oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, baseFrequency * 0.72), now + duration);
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(variant === "blocked" ? 600 : 1350, now);
+    filter.frequency.setValueAtTime(variant === "ready" ? 850 : variant === "blocked" ? 600 : 1450, now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(variant === "select" ? 0.09 : 0.065, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.035 : 0.065, now + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     oscillator.connect(filter);
@@ -281,8 +285,28 @@ export default function Home() {
     oscillator.stop(now + duration + 0.02);
   }, []);
 
+  useEffect(() => {
+    if (readyBounceTimerRef.current) {
+      window.clearInterval(readyBounceTimerRef.current);
+      readyBounceTimerRef.current = null;
+    }
+
+    if (!selected || movingBall || gameOver || clearingCells.length) return;
+
+    playBounceSound("ready");
+    readyBounceTimerRef.current = window.setInterval(() => playBounceSound("ready"), READY_BOUNCE_MS);
+
+    return () => {
+      if (readyBounceTimerRef.current) {
+        window.clearInterval(readyBounceTimerRef.current);
+        readyBounceTimerRef.current = null;
+      }
+    };
+  }, [clearingCells.length, gameOver, movingBall, playBounceSound, selected]);
+
   const resetGame = useCallback(() => {
     if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+    if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
     const fresh = buildInitialState();
     setBoard(fresh.board);
     setNextBalls(fresh.nextBalls);
@@ -399,7 +423,7 @@ export default function Home() {
         if (step < path.length) {
           setMovingBall({ color, path, step });
           playBounceSound("hop");
-          movementTimerRef.current = window.setTimeout(animateStep, 92);
+          movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
           return;
         }
 
@@ -411,7 +435,7 @@ export default function Home() {
         resolveClears(movedBoard, true);
       };
 
-      movementTimerRef.current = window.setTimeout(animateStep, 92);
+      movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
     },
     [board, gameOver, movingBall, playBounceSound, resolveClears, selected],
   );
@@ -422,7 +446,6 @@ export default function Home() {
 
     if (color) {
       setSelected({ row, col });
-      playBounceSound("select");
       setPathPreview([]);
       setMessage({
         tone: "ready",
