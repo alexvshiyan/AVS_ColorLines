@@ -1,7 +1,9 @@
-# Color Lines Movement Speed Adjustment Todo
+# GitHub Export Todo
 
-- [x] Вернуть предыдущую скорость перемещения шарика между клетками.
-- [x] Оставить более заметный вертикальный прыжок и подсветку текущей клетки маршрута.
-- [x] Синхронизировать CSS-анимацию с восстановленной скоростью логики движения.
-- [x] Проверить TypeScript и production build после изменения.
-- [ ] Сохранить checkpoint и отдать обновлённую версию.
+- [x] Confirm repository name: `AVS_ColorLines`.
+- [x] Confirm visibility: private.
+- [x] Check GitHub authentication and access for the `alexvshiyan` account.
+- [ ] Ensure the Color Lines project has a clean commit ready to export.
+- [ ] Create private GitHub repository `alexvshiyan/AVS_ColorLines`.
+- [ ] Push the project code to the new repository.
+- [ ] Verify the repository URL and share it with the user.
