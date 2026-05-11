@@ -8,6 +8,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { hasAnyLegalMove } from "@/lib/colorLinesRules";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -15,6 +16,7 @@ const NEXT_BALLS = 3;
 const LINE_LENGTH = 5;
 const MOVE_HOP_MS = 135;
 const READY_BOUNCE_MS = 820;
+const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -258,6 +260,8 @@ export default function Home() {
   useEffect(() => {
     const stored = window.localStorage.getItem("colorlines-best-score");
     if (stored) setBestScore(Number(stored));
+    const storedPlayerName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
+    if (storedPlayerName) setPlayerName(storedPlayerName);
 
     return () => {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
@@ -277,6 +281,20 @@ export default function Home() {
     setSelected(null);
     setPathPreview([]);
   }, [board, selected]);
+
+  useEffect(() => {
+    if (gameOver || movingBall || clearingCells.length) return;
+    if (hasAnyLegalMove(board)) return;
+
+    setGameOver(true);
+    setSelected(null);
+    setPathPreview([]);
+    setMessage({
+      tone: "over",
+      title: "GAME OVER",
+      body: "No legal move can be made from the current board. You can now save this final score.",
+    });
+  }, [board, clearingCells.length, gameOver, movingBall]);
 
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
@@ -347,7 +365,6 @@ export default function Home() {
     setMoves(0);
     setGameOver(false);
     setSubmittedScore(null);
-    setPlayerName("");
     setMessage({
       tone: "ready",
       title: "New board online",
@@ -399,12 +416,17 @@ export default function Home() {
           setBoard(withNewBalls);
           setNextBalls(freshNext);
           const remaining = getEmptyCells(withNewBalls).length;
-          if (remaining === 0) {
+          if (!hasAnyLegalMove(withNewBalls)) {
             setGameOver(true);
+            setSelected(null);
+            setPathPreview([]);
             setMessage({
               tone: "over",
-              title: "Board locked",
-              body: "No empty cells remain. Start a new cabinet run and chase a higher score.",
+              title: "GAME OVER",
+              body:
+                remaining === 0
+                  ? "No empty cells remain, so no further move can be made. You can now save this final score."
+                  : "No legal path remains for any marble. You can now save this final score.",
             });
           } else {
             setMessage({
@@ -517,21 +539,31 @@ export default function Home() {
     setPathPreview(path);
   };
 
+  const handlePlayerNameChange = useCallback((value: string) => {
+    setPlayerName(value);
+    if (value.trim()) {
+      window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, value);
+    }
+  }, []);
+
   const handleLeaderboardSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      if (score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
+      if (!gameOver || score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
+      if (playerName.trim()) {
+        window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
+      }
       submitScoreMutation.mutate({
         playerName,
         score,
         moves,
       });
     },
-    [moves, playerName, score, submitScoreMutation, submittedScore],
+    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore],
   );
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
-  const canSubmitScore = score > 0 && submittedScore !== score;
+  const canSubmitScore = gameOver && score > 0 && submittedScore !== score;
 
   const messageToneClass = {
     ready: "border-amber-300/25 text-amber-100",
@@ -644,7 +676,7 @@ export default function Home() {
                       Player name
                       <input
                         value={playerName}
-                        onChange={(event) => setPlayerName(event.target.value)}
+                        onChange={(event) => handlePlayerNameChange(event.target.value)}
                         maxLength={24}
                         placeholder="Your name"
                         className="leaderboard-input"
@@ -656,12 +688,14 @@ export default function Home() {
                       className="leaderboard-save-button"
                       disabled={!canSubmitScore || submitScoreMutation.isPending}
                     >
-                      {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : "Save Record"}
+                      {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : gameOver ? "Save Record" : "Finish Game to Save"}
                     </button>
                     <p className="font-['IBM_Plex_Sans'] text-[0.68rem] leading-5 text-stone-400">
-                      {score > 0
-                        ? "Save this run globally under a public display name."
-                        : "Score at least one point before saving a global record."}
+                      {score <= 0
+                        ? "Score at least one point before saving a global record."
+                        : gameOver
+                          ? "Save this completed run globally under the remembered public display name."
+                          : "Finish the game first; records can only be saved after GAME OVER."}
                     </p>
                   </form>
                 </div>

@@ -26,3 +26,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add an in-game UI that asks for the player name when a new score is eligible and saves it to the global leaderboard.
 - [x] Display the global leaderboard in the arcade cabinet panel with loading, empty, success, and error states.
 - [x] Validate database migration, TypeScript, production build, checkpoint the result, and sync meaningful changes to GitHub.
+
+## Game Over and Record Saving Refinement
+
+- [x] Show an explicit official Game Over state/message when no legal moves or empty cells remain.
+- [x] Allow saving a leaderboard record only after the game has ended.
+- [x] Remember the first entered player name locally on this computer while still allowing the player to edit it.
+- [x] Validate the refinements with tests, TypeScript, production build, checkpoint, and GitHub sync.
