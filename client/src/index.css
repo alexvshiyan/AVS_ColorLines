@@ -379,6 +379,113 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     letter-spacing: 0.12em;
   }
 
+  .leaderboard-input {
+    width: 100%;
+    min-height: 2.65rem;
+    border: 1px solid rgba(255, 224, 158, 0.26);
+    background: rgba(0, 0, 0, 0.42);
+    padding: 0.65rem 0.75rem;
+    color: rgb(245, 245, 244);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    box-shadow: inset 4px 4px 0 rgba(0, 0, 0, 0.28);
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      background 140ms ease;
+  }
+
+  .leaderboard-input::placeholder {
+    color: rgba(214, 211, 209, 0.45);
+  }
+
+  .leaderboard-input:focus {
+    border-color: rgba(255, 224, 158, 0.72);
+    background: rgba(0, 0, 0, 0.58);
+    box-shadow:
+      inset 4px 4px 0 rgba(0, 0, 0, 0.28),
+      0 0 0 2px rgba(255, 204, 92, 0.16);
+  }
+
+  .leaderboard-save-button {
+    min-height: 2.75rem;
+    border: 1px solid rgba(103, 232, 249, 0.5);
+    background: linear-gradient(180deg, rgba(103, 232, 249, 0.94), rgba(14, 116, 144, 0.96));
+    color: #041014;
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    box-shadow:
+      6px 6px 0 rgba(0, 0, 0, 0.48),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    transition:
+      transform 140ms ease,
+      filter 140ms ease,
+      opacity 140ms ease;
+  }
+
+  .leaderboard-save-button:not(:disabled):hover {
+    transform: translate(-1px, -1px);
+    filter: brightness(1.08);
+  }
+
+  .leaderboard-save-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+    filter: grayscale(0.32);
+  }
+
+  .leaderboard-list {
+    display: grid;
+    gap: 0.55rem;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+
+  .leaderboard-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.5rem 0.65rem;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.38);
+    padding: 0.62rem 0.7rem;
+    box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.24);
+  }
+
+  .leaderboard-rank {
+    color: rgba(255, 224, 158, 0.88);
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.05em;
+  }
+
+  .leaderboard-name {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(245, 245, 244, 0.92);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .leaderboard-score {
+    color: rgb(255, 224, 158);
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 1.45rem;
+    letter-spacing: 0.06em;
+  }
+
+  .leaderboard-moves {
+    grid-column: 2 / 4;
+    color: rgba(214, 211, 209, 0.62);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
   @media (min-width: 640px) {
     .container {
       padding-left: 1.5rem;

@@ -17,3 +17,12 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Allow selecting the next ball while the previous ball is still moving, so the newly selected ball starts its selected bounce animation immediately.
 - [x] Keep target-cell placement disabled while any ball is currently moving; the preselected ball can only be moved after the current movement completes.
 - [x] Validate the interaction with TypeScript and production build checks, then checkpoint and sync to GitHub.
+
+## Global Leaderboard Update
+
+- [x] Upgrade the project from static-only frontend to backend/database support so records can be shared globally.
+- [x] Create a persistent leaderboard data model with player name, score, move count, and created timestamp.
+- [x] Add safe API routes for reading top records and submitting a new record with basic validation and name sanitization.
+- [x] Add an in-game UI that asks for the player name when a new score is eligible and saves it to the global leaderboard.
+- [x] Display the global leaderboard in the arcade cabinet panel with loading, empty, success, and error states.
+- [ ] Validate database migration, TypeScript, production build, checkpoint the result, and sync meaningful changes to GitHub.

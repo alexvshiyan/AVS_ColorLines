@@ -5,8 +5,9 @@ glossy marbles, hard offset shadows, compact arcade labels, and crisp mechanical
 When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -226,6 +227,28 @@ export default function Home() {
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [submittedScore, setSubmittedScore] = useState<number | null>(null);
+  const trpcUtils = trpc.useUtils();
+  const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 10 });
+  const submitScoreMutation = trpc.leaderboard.submit.useMutation({
+    onSuccess: () => {
+      setSubmittedScore(score);
+      void trpcUtils.leaderboard.list.invalidate();
+      setMessage({
+        tone: "clear",
+        title: "Record transmitted",
+        body: "Your score has been saved to the global leaderboard.",
+      });
+    },
+    onError: () => {
+      setMessage({
+        tone: "blocked",
+        title: "Record uplink failed",
+        body: "The leaderboard could not save this score. Check the name and try again.",
+      });
+    },
+  });
   const [message, setMessage] = useState<GameMessage>({
     tone: "ready",
     title: "Cabinet armed",
@@ -323,6 +346,8 @@ export default function Home() {
     setScore(0);
     setMoves(0);
     setGameOver(false);
+    setSubmittedScore(null);
+    setPlayerName("");
     setMessage({
       tone: "ready",
       title: "New board online",
@@ -492,6 +517,22 @@ export default function Home() {
     setPathPreview(path);
   };
 
+  const handleLeaderboardSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
+      submitScoreMutation.mutate({
+        playerName,
+        score,
+        moves,
+      });
+    },
+    [moves, playerName, score, submitScoreMutation, submittedScore],
+  );
+
+  const leaderboardRecords = leaderboardQuery.data ?? [];
+  const canSubmitScore = score > 0 && submittedScore !== score;
+
   const messageToneClass = {
     ready: "border-amber-300/25 text-amber-100",
     move: "border-cyan-300/25 text-cyan-100",
@@ -595,6 +636,35 @@ export default function Home() {
                     <div className="h-full bg-gradient-to-r from-cyan-300 via-amber-200 to-red-500 transition-all duration-500" style={{ width: `${fillPercent}%` }} />
                   </div>
                 </div>
+
+                <div className="arcade-slab px-4 py-5">
+                  <p className="mb-3 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Save Score</p>
+                  <form className="grid gap-3" onSubmit={handleLeaderboardSubmit}>
+                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                      Player name
+                      <input
+                        value={playerName}
+                        onChange={(event) => setPlayerName(event.target.value)}
+                        maxLength={24}
+                        placeholder="Your name"
+                        className="leaderboard-input"
+                        aria-label="Player name for global leaderboard"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="leaderboard-save-button"
+                      disabled={!canSubmitScore || submitScoreMutation.isPending}
+                    >
+                      {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : "Save Record"}
+                    </button>
+                    <p className="font-['IBM_Plex_Sans'] text-[0.68rem] leading-5 text-stone-400">
+                      {score > 0
+                        ? "Save this run globally under a public display name."
+                        : "Score at least one point before saving a global record."}
+                    </p>
+                  </form>
+                </div>
               </aside>
             </div>
           </div>
@@ -611,13 +681,25 @@ export default function Home() {
               </div>
 
               <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>
-                <h2 className="mb-3 font-['Bebas_Neue'] text-4xl tracking-[0.08em] text-stone-50">Rules Scanner</h2>
-                <ol className="space-y-3 font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-300">
-                  <li><b className="text-amber-100">01.</b> Select any marble already on the board.</li>
-                  <li><b className="text-amber-100">02.</b> Move it only through empty orthogonal cells.</li>
-                  <li><b className="text-amber-100">03.</b> Align five matching marbles horizontally, vertically, or diagonally.</li>
-                  <li><b className="text-amber-100">04.</b> If no line clears, the incoming queue deploys.</li>
-                </ol>
+                <h2 className="mb-3 font-['Bebas_Neue'] text-4xl tracking-[0.08em] text-stone-50">Global Records</h2>
+                {leaderboardQuery.isLoading ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-300">Loading the leaderboard signal...</p>
+                ) : leaderboardQuery.isError ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-red-200">Global leaderboard is temporarily unavailable.</p>
+                ) : leaderboardRecords.length === 0 ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-300">No records yet. Be the first pilot on the board.</p>
+                ) : (
+                  <ol className="leaderboard-list">
+                    {leaderboardRecords.map((record, index) => (
+                      <li key={record.id} className="leaderboard-row">
+                        <span className="leaderboard-rank">#{index + 1}</span>
+                        <span className="leaderboard-name">{record.playerName}</span>
+                        <span className="leaderboard-score">{record.score}</span>
+                        <span className="leaderboard-moves">{record.moves} moves</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
             </div>
 
