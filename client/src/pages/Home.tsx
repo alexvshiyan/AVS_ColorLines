@@ -249,6 +249,12 @@ export default function Home() {
     }
   }, [score, bestScore]);
 
+  useEffect(() => {
+    if (!selected || board[selected.row][selected.col]) return;
+    setSelected(null);
+    setPathPreview([]);
+  }, [board, selected]);
+
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
 
@@ -441,7 +447,7 @@ export default function Home() {
   );
 
   const handleCellClick = (row: number, col: number) => {
-    if (gameOver || clearingCells.length || movingBall) return;
+    if (gameOver || clearingCells.length) return;
     const color = board[row][col];
 
     if (color) {
@@ -450,7 +456,20 @@ export default function Home() {
       setMessage({
         tone: "ready",
         title: `${COLOR_LABELS[color]} marble selected`,
-        body: "Choose an empty cell connected by open corridors. The scanner will reject blocked routes.",
+        body: movingBall
+          ? "Next marble queued. It can bounce in ready state now; choose its destination after the current hop sequence ends."
+          : "Choose an empty cell connected by open corridors. The scanner will reject blocked routes.",
+      });
+      return;
+    }
+
+    if (movingBall) {
+      setPathPreview([]);
+      playBounceSound("blocked");
+      setMessage({
+        tone: "blocked",
+        title: "Movement in progress",
+        body: "You can preselect another marble while the current one moves, but destination targeting unlocks after the hop sequence ends.",
       });
       return;
     }

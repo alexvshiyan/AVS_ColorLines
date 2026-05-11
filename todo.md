@@ -11,3 +11,9 @@ Future changes to the Color Lines project should be synchronized with the privat
 | A risky or larger change is about to start | Check current Git status first and preserve a stable point before proceeding. |
 
 Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
+
+## Pending Interaction Update
+
+- [x] Allow selecting the next ball while the previous ball is still moving, so the newly selected ball starts its selected bounce animation immediately.
+- [x] Keep target-cell placement disabled while any ball is currently moving; the preselected ball can only be moved after the current movement completes.
+- [x] Validate the interaction with TypeScript and production build checks, then checkpoint and sync to GitHub.
