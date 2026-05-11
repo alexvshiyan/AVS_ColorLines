@@ -12,7 +12,7 @@ const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
 const NEXT_BALLS = 3;
 const LINE_LENGTH = 5;
-const MOVE_HOP_MS = 190;
+const MOVE_HOP_MS = 135;
 const READY_BOUNCE_MS = 820;
 
 const HERO_ASSET =
