@@ -25,4 +25,4 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add safe API routes for reading top records and submitting a new record with basic validation and name sanitization.
 - [x] Add an in-game UI that asks for the player name when a new score is eligible and saves it to the global leaderboard.
 - [x] Display the global leaderboard in the arcade cabinet panel with loading, empty, success, and error states.
-- [ ] Validate database migration, TypeScript, production build, checkpoint the result, and sync meaningful changes to GitHub.
+- [x] Validate database migration, TypeScript, production build, checkpoint the result, and sync meaningful changes to GitHub.
