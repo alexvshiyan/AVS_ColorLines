@@ -5,7 +5,7 @@ glossy marbles, hard offset shadows, compact arcade labels, and crisp mechanical
 When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
 
 const BOARD_SIZE = 9;
@@ -30,6 +30,12 @@ type GameMessage = {
   title: string;
   body: string;
 };
+
+type MovingBall = {
+  color: ColorId;
+  path: Position[];
+  step: number;
+} | null;
 
 const COLORS: ColorId[] = ["red", "cyan", "yellow", "green", "magenta", "blue", "orange"];
 
@@ -210,6 +216,9 @@ export default function Home() {
   const [selected, setSelected] = useState<Position | null>(null);
   const [pathPreview, setPathPreview] = useState<Position[]>([]);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
+  const [movingBall, setMovingBall] = useState<MovingBall>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const movementTimerRef = useRef<number | null>(null);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -223,6 +232,10 @@ export default function Home() {
   useEffect(() => {
     const stored = window.localStorage.getItem("colorlines-best-score");
     if (stored) setBestScore(Number(stored));
+
+    return () => {
+      if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -235,13 +248,48 @@ export default function Home() {
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
 
+  const playBounceSound = useCallback((variant: "select" | "hop" | "blocked" = "hop") => {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const context = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = context;
+    if (context.state === "suspended") void context.resume();
+
+    const now = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const filter = context.createBiquadFilter();
+    const baseFrequency = variant === "select" ? 360 : variant === "blocked" ? 150 : 260;
+    const peakFrequency = variant === "select" ? 560 : variant === "blocked" ? 100 : 410;
+    const duration = variant === "select" ? 0.105 : variant === "blocked" ? 0.14 : 0.075;
+
+    oscillator.type = variant === "blocked" ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(baseFrequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(peakFrequency, now + duration * 0.36);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, baseFrequency * 0.72), now + duration);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(variant === "blocked" ? 600 : 1350, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(variant === "select" ? 0.09 : 0.065, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    oscillator.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.02);
+  }, []);
+
   const resetGame = useCallback(() => {
+    if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
     const fresh = buildInitialState();
     setBoard(fresh.board);
     setNextBalls(fresh.nextBalls);
     setSelected(null);
     setPathPreview([]);
     setClearingCells([]);
+    setMovingBall(null);
     setScore(0);
     setMoves(0);
     setGameOver(false);
@@ -320,13 +368,14 @@ export default function Home() {
 
   const moveSelectedBall = useCallback(
     (destination: Position) => {
-      if (!selected || gameOver) return;
+      if (!selected || gameOver || movingBall) return;
       const color = board[selected.row][selected.col];
       if (!color || board[destination.row][destination.col]) return;
 
       const path = findPath(board, selected, destination);
       if (!path.length) {
         setPathPreview([]);
+        playBounceSound("blocked");
         setMessage({
           tone: "blocked",
           title: "Path blocked",
@@ -335,25 +384,45 @@ export default function Home() {
         return;
       }
 
-      const movedBoard = cloneBoard(board);
-      movedBoard[selected.row][selected.col] = null;
-      movedBoard[destination.row][destination.col] = color;
+      const boardWithoutSource = cloneBoard(board);
+      boardWithoutSource[selected.row][selected.col] = null;
       setSelected(null);
       setPathPreview(path);
       setMoves((value) => value + 1);
-      setBoard(movedBoard);
-      window.setTimeout(() => setPathPreview([]), 260);
-      resolveClears(movedBoard, true);
+      setBoard(boardWithoutSource);
+      setMovingBall({ color, path, step: 0 });
+      playBounceSound("hop");
+
+      let step = 0;
+      const animateStep = () => {
+        step += 1;
+        if (step < path.length) {
+          setMovingBall({ color, path, step });
+          playBounceSound("hop");
+          movementTimerRef.current = window.setTimeout(animateStep, 92);
+          return;
+        }
+
+        const movedBoard = cloneBoard(boardWithoutSource);
+        movedBoard[destination.row][destination.col] = color;
+        setMovingBall(null);
+        setPathPreview([]);
+        setBoard(movedBoard);
+        resolveClears(movedBoard, true);
+      };
+
+      movementTimerRef.current = window.setTimeout(animateStep, 92);
     },
-    [board, gameOver, resolveClears, selected],
+    [board, gameOver, movingBall, playBounceSound, resolveClears, selected],
   );
 
   const handleCellClick = (row: number, col: number) => {
-    if (gameOver || clearingCells.length) return;
+    if (gameOver || clearingCells.length || movingBall) return;
     const color = board[row][col];
 
     if (color) {
       setSelected({ row, col });
+      playBounceSound("select");
       setPathPreview([]);
       setMessage({
         tone: "ready",
@@ -366,6 +435,7 @@ export default function Home() {
     if (selected) {
       moveSelectedBall({ row, col });
     } else {
+      playBounceSound("blocked");
       setMessage({
         tone: "blocked",
         title: "No marble selected",
@@ -375,7 +445,7 @@ export default function Home() {
   };
 
   const handleCellEnter = (row: number, col: number) => {
-    if (!selected || board[row][col] || gameOver || clearingCells.length) return;
+    if (!selected || board[row][col] || gameOver || clearingCells.length || movingBall) return;
     const path = findPath(board, selected, { row, col });
     setPathPreview(path);
   };
@@ -433,17 +503,21 @@ export default function Home() {
                       const selectedCell = samePosition(selected, { row, col });
                       const inPath = pathPreview.some((cell) => cell.row === row && cell.col === col);
                       const isClearing = hasClearedCell(clearingCells, row, col);
+                      const movingHere = Boolean(
+                        movingBall && movingBall.path[movingBall.step]?.row === row && movingBall.path[movingBall.step]?.col === col,
+                      );
+                      const visibleColor = movingHere && movingBall ? movingBall.color : color;
                       return (
                         <button
                           key={`${row}-${col}`}
                           type="button"
-                          aria-label={color ? `${COLOR_LABELS[color]} marble at row ${row + 1}, column ${col + 1}` : `Empty cell at row ${row + 1}, column ${col + 1}`}
-                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isClearing ? "cell-clearing" : ""}`}
+                          aria-label={visibleColor ? `${COLOR_LABELS[visibleColor]} marble at row ${row + 1}, column ${col + 1}` : `Empty cell at row ${row + 1}, column ${col + 1}`}
+                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isClearing ? "cell-clearing" : ""} ${movingHere ? "cell-moving" : ""}`}
                           onClick={() => handleCellClick(row, col)}
                           onMouseEnter={() => handleCellEnter(row, col)}
                         >
                           <span className="cell-coordinate">{String.fromCharCode(65 + col)}{row + 1}</span>
-                          {color && <span className={`marble marble-${color}`} />}
+                          {visibleColor && <span className={`marble marble-${visibleColor}`} />}
                         </button>
                       );
                     }),
