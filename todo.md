@@ -38,3 +38,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 
 - [x] Synchronize the selected-ball waiting sound with the slow bounce rhythm of the selected marble.
 - [x] Save a checkpoint for the sound refinement and sync it to GitHub after the successful checks.
+
+## Optimal Play Strategy Analysis
+
+- [x] Extract the current Color Lines rules and scoring parameters from the implementation.
+- [x] Build a reproducible simulation harness for comparing candidate play strategies.
+- [x] Run experiments across multiple strategy variants and summarize expected score, survival, and board-control metrics.
+- [x] Recommend a practical optimal play mode or heuristic for the player and possible in-game guidance improvements.
+- [x] Add and summarize an explicit board-control metric across strategies in the strategy analysis report.
