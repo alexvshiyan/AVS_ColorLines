@@ -1,0 +1,907 @@
+/*
+Design philosophy reminder: Neo-Brutalist Arcade Modernism.
+This file should reinforce a dark arcade-cockpit game surface, chamfered slab panels,
+glossy marbles, hard offset shadows, compact arcade labels, and crisp mechanical feedback.
+When in doubt, ask: does this choice reinforce or dilute our design philosophy?
+*/
+
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Bot, Pause, RotateCcw, Sparkles, Target, Trophy, Zap } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
+
+const BOARD_SIZE = 9;
+const STARTING_BALLS = 5;
+const NEXT_BALLS = 3;
+const LINE_LENGTH = 5;
+const MOVE_HOP_MS = 135;
+const SELECTED_BOUNCE_HALF_MS = 650;
+const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
+const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
+
+const HERO_ASSET =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
+const STRIP_ASSET =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-marble-strip-GfCQbyTXNUFTCb2ddsANcZ.webp";
+const PANEL_ASSET =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-panel-texture-Bgi5NKeRsdDHampfE5Wj9n.webp";
+
+type ColorId = "red" | "cyan" | "yellow" | "green" | "magenta" | "blue" | "orange";
+type Cell = ColorId | null;
+type Position = { row: number; col: number };
+type MessageTone = "ready" | "move" | "clear" | "blocked" | "over";
+
+type GameMessage = {
+  tone: MessageTone;
+  title: string;
+  body: string;
+};
+
+type MovingBall = {
+  color: ColorId;
+  path: Position[];
+  step: number;
+} | null;
+
+const COLORS: ColorId[] = ["red", "cyan", "yellow", "green", "magenta", "blue", "orange"];
+
+const COLOR_LABELS: Record<ColorId, string> = {
+  red: "Red",
+  cyan: "Cyan",
+  yellow: "Gold",
+  green: "Green",
+  magenta: "Magenta",
+  blue: "Blue",
+  orange: "Orange",
+};
+
+const DIRECTIONS: Position[] = [
+  { row: 0, col: 1 },
+  { row: 1, col: 0 },
+  { row: 1, col: 1 },
+  { row: 1, col: -1 },
+];
+
+function makeEmptyBoard(): Cell[][] {
+  return Array.from({ length: BOARD_SIZE }, () => Array<Cell>(BOARD_SIZE).fill(null));
+}
+
+function cloneBoard(board: Cell[][]): Cell[][] {
+  return board.map((row) => [...row]);
+}
+
+function samePosition(a: Position | null, b: Position | null) {
+  return Boolean(a && b && a.row === b.row && a.col === b.col);
+}
+
+function inBounds(row: number, col: number) {
+  return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+function randomColor(): ColorId {
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
+function randomNextBalls() {
+  return Array.from({ length: NEXT_BALLS }, randomColor);
+}
+
+function getEmptyCells(board: Cell[][]): Position[] {
+  const cells: Position[] = [];
+  for (let row = 0; row < BOARD_SIZE; row += 1) {
+    for (let col = 0; col < BOARD_SIZE; col += 1) {
+      if (!board[row][col]) cells.push({ row, col });
+    }
+  }
+  return cells;
+}
+
+function placeRandomBalls(board: Cell[][], colors: ColorId[]) {
+  const nextBoard = cloneBoard(board);
+  const empties = getEmptyCells(nextBoard);
+
+  colors.forEach((color) => {
+    if (!empties.length) return;
+    const index = Math.floor(Math.random() * empties.length);
+    const [cell] = empties.splice(index, 1);
+    nextBoard[cell.row][cell.col] = color;
+  });
+
+  return nextBoard;
+}
+
+function findPath(board: Cell[][], start: Position, end: Position): Position[] {
+  if (!inBounds(end.row, end.col) || board[end.row][end.col]) return [];
+
+  const queue: Position[] = [start];
+  const visited = Array.from({ length: BOARD_SIZE }, () => Array<boolean>(BOARD_SIZE).fill(false));
+  const previous = Array.from({ length: BOARD_SIZE }, () => Array<Position | null>(BOARD_SIZE).fill(null));
+  visited[start.row][start.col] = true;
+
+  const steps = [
+    { row: -1, col: 0 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 },
+    { row: 0, col: 1 },
+  ];
+
+  while (queue.length) {
+    const current = queue.shift()!;
+    if (current.row === end.row && current.col === end.col) {
+      const path: Position[] = [];
+      let cursor: Position | null = current;
+      while (cursor) {
+        path.unshift(cursor);
+        cursor = previous[cursor.row][cursor.col];
+      }
+      return path;
+    }
+
+    for (const step of steps) {
+      const row = current.row + step.row;
+      const col = current.col + step.col;
+      if (!inBounds(row, col) || visited[row][col]) continue;
+      if (board[row][col] && !(row === end.row && col === end.col)) continue;
+      visited[row][col] = true;
+      previous[row][col] = current;
+      queue.push({ row, col });
+    }
+  }
+
+  return [];
+}
+
+function keyOf(position: Position) {
+  return `${position.row}-${position.col}`;
+}
+
+function detectLines(board: Cell[][]): Position[] {
+  const cleared = new Set<string>();
+
+  for (let row = 0; row < BOARD_SIZE; row += 1) {
+    for (let col = 0; col < BOARD_SIZE; col += 1) {
+      const color = board[row][col];
+      if (!color) continue;
+
+      DIRECTIONS.forEach((direction) => {
+        const beforeRow = row - direction.row;
+        const beforeCol = col - direction.col;
+        if (inBounds(beforeRow, beforeCol) && board[beforeRow][beforeCol] === color) return;
+
+        const run: Position[] = [];
+        let currentRow = row;
+        let currentCol = col;
+        while (inBounds(currentRow, currentCol) && board[currentRow][currentCol] === color) {
+          run.push({ row: currentRow, col: currentCol });
+          currentRow += direction.row;
+          currentCol += direction.col;
+        }
+
+        if (run.length >= LINE_LENGTH) {
+          run.forEach((position) => cleared.add(keyOf(position)));
+        }
+      });
+    }
+  }
+
+  return Array.from(cleared).map((key) => {
+    const [row, col] = key.split("-").map(Number);
+    return { row, col };
+  });
+}
+
+function removeCells(board: Cell[][], cells: Position[]) {
+  const nextBoard = cloneBoard(board);
+  cells.forEach(({ row, col }) => {
+    nextBoard[row][col] = null;
+  });
+  return nextBoard;
+}
+
+function buildInitialState() {
+  const board = placeRandomBalls(makeEmptyBoard(), Array.from({ length: STARTING_BALLS }, randomColor));
+  return {
+    board,
+    nextBalls: randomNextBalls(),
+  };
+}
+
+function scoreForCleared(count: number) {
+  if (count <= 0) return 0;
+  return count * 2 + Math.max(0, count - LINE_LENGTH) * 3;
+}
+
+function hasClearedCell(cells: Position[], row: number, col: number) {
+  return cells.some((cell) => cell.row === row && cell.col === col);
+}
+
+export default function Home() {
+  const initial = useMemo(() => buildInitialState(), []);
+  const [board, setBoard] = useState<Cell[][]>(initial.board);
+  const [nextBalls, setNextBalls] = useState<ColorId[]>(initial.nextBalls);
+  const [selected, setSelected] = useState<Position | null>(null);
+  const [pathPreview, setPathPreview] = useState<Position[]>([]);
+  const [suggestedMove, setSuggestedMove] = useState<ColorLinesMoveRecommendation | null>(null);
+  const [isDemoRunning, setIsDemoRunning] = useState(false);
+  const [clearingCells, setClearingCells] = useState<Position[]>([]);
+  const [movingBall, setMovingBall] = useState<MovingBall>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const movementTimerRef = useRef<number | null>(null);
+  const readyBounceTimerRef = useRef<number | null>(null);
+  const demoTimerRef = useRef<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [moves, setMoves] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [submittedScore, setSubmittedScore] = useState<number | null>(null);
+  const trpcUtils = trpc.useUtils();
+  const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 10 });
+  const submitScoreMutation = trpc.leaderboard.submit.useMutation({
+    onSuccess: () => {
+      setSubmittedScore(score);
+      void trpcUtils.leaderboard.list.invalidate();
+      setMessage({
+        tone: "clear",
+        title: "Record transmitted",
+        body: "Your score has been saved to the global leaderboard.",
+      });
+    },
+    onError: () => {
+      setMessage({
+        tone: "blocked",
+        title: "Record uplink failed",
+        body: "The leaderboard could not save this score. Check the name and try again.",
+      });
+    },
+  });
+  const [message, setMessage] = useState<GameMessage>({
+    tone: "ready",
+    title: "Cabinet armed",
+    body: "Select a marble, then choose an empty cell with a clear path. Align five or more to clear the line.",
+  });
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("colorlines-best-score");
+    if (stored) setBestScore(Number(stored));
+    const storedPlayerName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
+    if (storedPlayerName) setPlayerName(storedPlayerName);
+
+    return () => {
+      if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+      if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (score > bestScore) {
+      setBestScore(score);
+      window.localStorage.setItem("colorlines-best-score", String(score));
+    }
+  }, [score, bestScore]);
+
+  useEffect(() => {
+    if (!selected || board[selected.row][selected.col]) return;
+    setSelected(null);
+    setPathPreview([]);
+  }, [board, selected]);
+
+  useEffect(() => {
+    if (gameOver || movingBall || clearingCells.length) return;
+    if (hasAnyLegalMove(board)) return;
+
+    setGameOver(true);
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) {
+      window.clearTimeout(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
+    setSelected(null);
+    setPathPreview([]);
+    setSuggestedMove(null);
+    setMessage({
+      tone: "over",
+      title: "GAME OVER",
+      body: "No legal move can be made from the current board. You can now save this final score.",
+    });
+  }, [board, clearingCells.length, gameOver, movingBall]);
+
+  const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
+  const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
+
+  const playBounceSound = useCallback((variant: "ready" | "hop" | "blocked" = "hop") => {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const context = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = context;
+    if (context.state === "suspended") void context.resume();
+
+    const now = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const filter = context.createBiquadFilter();
+    const baseFrequency = variant === "ready" ? 178 : variant === "blocked" ? 150 : 278;
+    const peakFrequency = variant === "ready" ? 236 : variant === "blocked" ? 100 : 455;
+    const duration = variant === "ready" ? 0.12 : variant === "blocked" ? 0.14 : 0.105;
+
+    oscillator.type = variant === "ready" ? "triangle" : variant === "blocked" ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(baseFrequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(peakFrequency, now + duration * 0.36);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, baseFrequency * 0.72), now + duration);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(variant === "ready" ? 520 : variant === "blocked" ? 600 : 1450, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.022 : 0.065, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    oscillator.connect(filter);
+    filter.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.02);
+  }, []);
+
+  useEffect(() => {
+    if (readyBounceTimerRef.current) {
+      window.clearInterval(readyBounceTimerRef.current);
+      readyBounceTimerRef.current = null;
+    }
+
+    if (!selected || movingBall || gameOver || clearingCells.length) return;
+
+    readyBounceTimerRef.current = window.setTimeout(() => {
+      playBounceSound("ready");
+      readyBounceTimerRef.current = window.setInterval(() => playBounceSound("ready"), READY_BOUNCE_MS);
+    }, READY_BOUNCE_MS);
+
+    return () => {
+      if (readyBounceTimerRef.current) {
+        window.clearInterval(readyBounceTimerRef.current);
+        readyBounceTimerRef.current = null;
+      }
+    };
+  }, [clearingCells.length, gameOver, movingBall, playBounceSound, selected]);
+
+  const resetGame = useCallback(() => {
+    if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
+    if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
+    const fresh = buildInitialState();
+    setBoard(fresh.board);
+    setNextBalls(fresh.nextBalls);
+    setSelected(null);
+    setPathPreview([]);
+    setSuggestedMove(null);
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    setClearingCells([]);
+    setMovingBall(null);
+    setScore(0);
+    setMoves(0);
+    setGameOver(false);
+    setSubmittedScore(null);
+    setMessage({
+      tone: "ready",
+      title: "New board online",
+      body: "The line scanner is ready. Build a row, column, or diagonal chain of five matching marbles.",
+    });
+  }, []);
+
+  const resolveClears = useCallback(
+    (incomingBoard: Cell[][], afterMove: boolean) => {
+      const cleared = detectLines(incomingBoard);
+      if (cleared.length) {
+        const gained = scoreForCleared(cleared.length);
+        setClearingCells(cleared);
+        window.setTimeout(() => {
+          const clearedBoard = removeCells(incomingBoard, cleared);
+          setBoard(clearedBoard);
+          setClearingCells([]);
+          setScore((value) => value + gained);
+          setMessage({
+            tone: "clear",
+            title: `${cleared.length} marbles cleared`,
+            body: `Line collapse registered. Score increased by ${gained}. Keep the cockpit open.`,
+          });
+        }, 220);
+        return;
+      }
+
+      if (afterMove) {
+        const withNewBalls = placeRandomBalls(incomingBoard, nextBalls);
+        const postSpawnClears = detectLines(withNewBalls);
+        const freshNext = randomNextBalls();
+        if (postSpawnClears.length) {
+          const gained = scoreForCleared(postSpawnClears.length);
+          setBoard(withNewBalls);
+          setClearingCells(postSpawnClears);
+          window.setTimeout(() => {
+            const clearedBoard = removeCells(withNewBalls, postSpawnClears);
+            setBoard(clearedBoard);
+            setClearingCells([]);
+            setScore((value) => value + gained);
+            setNextBalls(freshNext);
+            setMessage({
+              tone: "clear",
+              title: "Spawn line cleared",
+              body: `${postSpawnClears.length} fresh marbles formed a line and were removed for ${gained} points.`,
+            });
+          }, 220);
+        } else {
+          setBoard(withNewBalls);
+          setNextBalls(freshNext);
+          const remaining = getEmptyCells(withNewBalls).length;
+          if (!hasAnyLegalMove(withNewBalls)) {
+            setGameOver(true);
+            setIsDemoRunning(false);
+            if (demoTimerRef.current) {
+              window.clearTimeout(demoTimerRef.current);
+              demoTimerRef.current = null;
+            }
+            setSelected(null);
+            setPathPreview([]);
+            setSuggestedMove(null);
+            setMessage({
+              tone: "over",
+              title: "GAME OVER",
+              body:
+                remaining === 0
+                  ? "No empty cells remain, so no further move can be made. You can now save this final score."
+                  : "No legal path remains for any marble. You can now save this final score.",
+            });
+          } else {
+            setMessage({
+              tone: "move",
+              title: "Move logged",
+              body: `${NEXT_BALLS} new marbles entered the grid. Empty cells remaining: ${remaining}.`,
+            });
+          }
+        }
+      } else {
+        setBoard(incomingBoard);
+      }
+    },
+    [nextBalls],
+  );
+
+  const executeMove = useCallback(
+    (source: Position, destination: Position) => {
+      if (gameOver || movingBall) return false;
+      const color = board[source.row][source.col];
+      if (!color || board[destination.row][destination.col]) return false;
+
+      const path = findPath(board, source, destination);
+      if (!path.length) {
+        setPathPreview([]);
+        playBounceSound("blocked");
+        setMessage({
+          tone: "blocked",
+          title: "Path blocked",
+          body: "That marble cannot reach the selected cell. Try a route with open orthogonal steps.",
+        });
+        return false;
+      }
+
+      const boardWithoutSource = cloneBoard(board);
+      boardWithoutSource[source.row][source.col] = null;
+      setSelected(null);
+      setSuggestedMove(null);
+      setPathPreview(path);
+      setMoves((value) => value + 1);
+      setBoard(boardWithoutSource);
+      setMovingBall({ color, path, step: 0 });
+      playBounceSound("hop");
+
+      let step = 0;
+      const animateStep = () => {
+        step += 1;
+        if (step < path.length) {
+          setMovingBall({ color, path, step });
+          playBounceSound("hop");
+          movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
+          return;
+        }
+
+        const movedBoard = cloneBoard(boardWithoutSource);
+        movedBoard[destination.row][destination.col] = color;
+        setMovingBall(null);
+        setPathPreview([]);
+        setBoard(movedBoard);
+        resolveClears(movedBoard, true);
+      };
+
+      movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
+      return true;
+    },
+    [board, gameOver, movingBall, playBounceSound, resolveClears],
+  );
+
+  const moveSelectedBall = useCallback(
+    (destination: Position) => {
+      if (!selected) return;
+      executeMove(selected, destination);
+    },
+    [executeMove, selected],
+  );
+
+  const handleSuggestMove = useCallback(() => {
+    if (gameOver || movingBall || clearingCells.length) return;
+    const recommendation = recommendColorLinesMove(board);
+    if (!recommendation) {
+      setSuggestedMove(null);
+      setPathPreview([]);
+      playBounceSound("blocked");
+      setMessage({
+        tone: "blocked",
+        title: "No move found",
+        body: "The line-builder scanner cannot find a legal move from the current board.",
+      });
+      return;
+    }
+
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    setSelected(recommendation.from);
+    setSuggestedMove(recommendation);
+    setPathPreview(recommendation.path);
+    setMessage({
+      tone: recommendation.clearedCount ? "clear" : "ready",
+      title: recommendation.clearedCount ? "Suggested clearing move" : "Suggested line-builder move",
+      body: `${COLOR_LABELS[recommendation.color as ColorId]} ${String.fromCharCode(65 + recommendation.from.col)}${recommendation.from.row + 1} → ${String.fromCharCode(65 + recommendation.to.col)}${recommendation.to.row + 1}. This favors future five-in-line potential and open board control.`,
+    });
+  }, [board, clearingCells.length, gameOver, movingBall, playBounceSound]);
+
+  const handleToggleDemo = useCallback(() => {
+    if (isDemoRunning) {
+      setIsDemoRunning(false);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+      setMessage({
+        tone: "ready",
+        title: "Demo paused",
+        body: "Algorithmic play is stopped. You can continue manually from this exact board state.",
+      });
+      return;
+    }
+
+    if (gameOver) return;
+    setIsDemoRunning(true);
+    setSelected(null);
+    setPathPreview([]);
+    setSuggestedMove(null);
+    setMessage({
+      tone: "move",
+      title: "Demo running",
+      body: "The line-builder algorithm will choose and play moves automatically. Press Stop Demo whenever you want to continue manually.",
+    });
+  }, [gameOver, isDemoRunning]);
+
+  useEffect(() => {
+    if (demoTimerRef.current) {
+      window.clearTimeout(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
+
+    if (!isDemoRunning || gameOver || movingBall || clearingCells.length) return;
+
+    demoTimerRef.current = window.setTimeout(() => {
+      const recommendation = recommendColorLinesMove(board);
+      if (!recommendation) {
+        setIsDemoRunning(false);
+        setSuggestedMove(null);
+        setPathPreview([]);
+        setMessage({
+          tone: "over",
+          title: "Demo stopped",
+          body: "The algorithm found no legal continuation from the current board.",
+        });
+        return;
+      }
+
+      setSuggestedMove(recommendation);
+      setPathPreview(recommendation.path);
+      setSelected(recommendation.from);
+      setMessage({
+        tone: recommendation.clearedCount ? "clear" : "move",
+        title: "Demo move selected",
+        body: `${COLOR_LABELS[recommendation.color as ColorId]} ${String.fromCharCode(65 + recommendation.from.col)}${recommendation.from.row + 1} → ${String.fromCharCode(65 + recommendation.to.col)}${recommendation.to.row + 1}.`,
+      });
+      executeMove(recommendation.from, recommendation.to);
+    }, 700);
+
+    return () => {
+      if (demoTimerRef.current) {
+        window.clearTimeout(demoTimerRef.current);
+        demoTimerRef.current = null;
+      }
+    };
+  }, [board, clearingCells.length, executeMove, gameOver, isDemoRunning, movingBall]);
+
+  const handleCellClick = (row: number, col: number) => {
+    if (isDemoRunning) {
+      setIsDemoRunning(false);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    }
+    if (gameOver || clearingCells.length) return;
+    const color = board[row][col];
+
+    if (color) {
+      setSelected({ row, col });
+      setSuggestedMove(null);
+      setPathPreview([]);
+      setMessage({
+        tone: "ready",
+        title: `${COLOR_LABELS[color]} marble selected`,
+        body: movingBall
+          ? "Next marble queued. It can bounce in ready state now; choose its destination after the current hop sequence ends."
+          : "Choose an empty cell connected by open corridors. The scanner will reject blocked routes.",
+      });
+      return;
+    }
+
+    if (movingBall) {
+      setPathPreview([]);
+      playBounceSound("blocked");
+      setMessage({
+        tone: "blocked",
+        title: "Movement in progress",
+        body: "You can preselect another marble while the current one moves, but destination targeting unlocks after the hop sequence ends.",
+      });
+      return;
+    }
+
+    if (selected) {
+      setSuggestedMove(null);
+      moveSelectedBall({ row, col });
+    } else {
+      playBounceSound("blocked");
+      setMessage({
+        tone: "blocked",
+        title: "No marble selected",
+        body: "Tap a colored marble first, then tap an empty destination cell.",
+      });
+    }
+  };
+
+  const handleCellEnter = (row: number, col: number) => {
+    if (!selected || board[row][col] || gameOver || clearingCells.length || movingBall) return;
+    const path = findPath(board, selected, { row, col });
+    setPathPreview(path);
+  };
+
+  const handlePlayerNameChange = useCallback((value: string) => {
+    setPlayerName(value);
+    if (value.trim()) {
+      window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, value);
+    }
+  }, []);
+
+  const handleLeaderboardSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!gameOver || score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
+      if (playerName.trim()) {
+        window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
+      }
+      submitScoreMutation.mutate({
+        playerName,
+        score,
+        moves,
+      });
+    },
+    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore],
+  );
+
+  const leaderboardRecords = leaderboardQuery.data ?? [];
+  const canSubmitScore = gameOver && score > 0 && submittedScore !== score;
+
+  const messageToneClass = {
+    ready: "border-amber-300/25 text-amber-100",
+    move: "border-cyan-300/25 text-cyan-100",
+    clear: "border-green-300/35 text-green-100",
+    blocked: "border-red-300/35 text-red-100",
+    over: "border-magenta-300/35 text-magenta-100",
+  }[message.tone];
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#090909] text-stone-100">
+      <section
+        className="relative min-h-screen bg-cover bg-center px-4 py-5 sm:px-6 lg:px-8"
+        style={{ backgroundImage: `linear-gradient(90deg, rgba(7,7,7,.96), rgba(8,8,8,.86) 48%, rgba(8,8,8,.58)), url(${HERO_ASSET})` }}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,193,91,.13),transparent_28%),radial-gradient(circle_at_78%_62%,rgba(0,229,255,.11),transparent_24%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.13] mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
+
+        <div className="relative mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="flex flex-col justify-between gap-5">
+            <header className="grid gap-4 pt-2 lg:grid-cols-[1fr_auto] lg:items-end">
+              <div>
+                <p className="mb-2 inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
+                  Classic Color Lines / Browser Cabinet
+                </p>
+                <h1 className="font-['Bebas_Neue'] text-6xl leading-[0.86] tracking-[0.055em] text-stone-50 sm:text-7xl lg:text-8xl">
+                  Color<br className="hidden sm:block" /> Lines
+                </h1>
+              </div>
+              <div className="max-w-xl border-l-4 border-amber-300/60 bg-black/45 p-4 font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200 shadow-[10px_10px_0_rgba(0,0,0,.35)] backdrop-blur-md">
+                Move one marble per turn. If the move does not clear a line, the incoming queue deploys three new marbles. Clear five or more matching marbles in a row, column, or diagonal.
+              </div>
+            </header>
+
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_210px]">
+              <section className="arcade-slab board-shell p-3 sm:p-4" aria-label="Color Lines game board">
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <div>
+                    <p className="font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-amber-100/70">Grid Matrix</p>
+                    <p className="font-['Bebas_Neue'] text-2xl tracking-[0.08em] text-stone-100">9 × 9 Tactical Field</p>
+                  </div>
+                  <div className="hidden h-9 items-center gap-1 border border-stone-600/60 bg-black/35 px-3 sm:flex">
+                    {COLORS.map((color) => (
+                      <span key={color} className={`legend-dot marble-${color}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-9 gap-1.5 rounded-none border border-amber-200/20 bg-black/55 p-2 shadow-inner sm:gap-2 sm:p-3">
+                  {board.map((rowCells, row) =>
+                    rowCells.map((color, col) => {
+                      const selectedCell = samePosition(selected, { row, col });
+                      const inPath = pathPreview.some((cell) => cell.row === row && cell.col === col);
+                      const isClearing = hasClearedCell(clearingCells, row, col);
+                      const isSuggestedFrom = Boolean(suggestedMove && suggestedMove.from.row === row && suggestedMove.from.col === col);
+                      const isSuggestedTo = Boolean(suggestedMove && suggestedMove.to.row === row && suggestedMove.to.col === col);
+                      const movingHere = Boolean(
+                        movingBall && movingBall.path[movingBall.step]?.row === row && movingBall.path[movingBall.step]?.col === col,
+                      );
+                      const visibleColor = movingHere && movingBall ? movingBall.color : color;
+                      return (
+                        <button
+                          key={`${row}-${col}`}
+                          type="button"
+                          aria-label={visibleColor ? `${COLOR_LABELS[visibleColor]} marble at row ${row + 1}, column ${col + 1}` : `Empty cell at row ${row + 1}, column ${col + 1}`}
+                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isSuggestedFrom ? "cell-suggest-source" : ""} ${isSuggestedTo ? "cell-suggest-target" : ""} ${isClearing ? "cell-clearing" : ""} ${movingHere ? "cell-moving" : ""}`}
+                          onClick={() => handleCellClick(row, col)}
+                          onMouseEnter={() => handleCellEnter(row, col)}
+                        >
+                          <span className="cell-coordinate">{String.fromCharCode(65 + col)}{row + 1}</span>
+                          {visibleColor && <span className={`marble marble-${visibleColor}`} />}
+                        </button>
+                      );
+                    }),
+                  )}
+                </div>
+              </section>
+
+              <aside className="grid gap-4">
+                <div className="arcade-slab px-4 py-5">
+                  <p className="font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Score</p>
+                  <div className="font-['Bebas_Neue'] text-7xl leading-none tracking-[0.06em] text-amber-100 tabular-nums">{score}</div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                    <span className="border border-stone-700/80 bg-black/35 p-2">Moves<br /><b className="font-['Bebas_Neue'] text-2xl text-stone-100">{moves}</b></span>
+                    <span className="border border-stone-700/80 bg-black/35 p-2">Best<br /><b className="font-['Bebas_Neue'] text-2xl text-stone-100">{bestScore}</b></span>
+                  </div>
+                </div>
+
+                <div className="arcade-slab px-4 py-5">
+                  <p className="mb-3 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Incoming</p>
+                  <div className="flex items-center gap-3">
+                    {nextBalls.map((color, index) => (
+                      <span key={`${color}-${index}`} className={`preview-marble marble-${color}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="arcade-slab px-4 py-5">
+                  <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.26em] text-stone-400">
+                    <span>Capacity</span>
+                    <span>{fillPercent}%</span>
+                  </div>
+                  <div className="h-3 border border-stone-600 bg-black/55 p-0.5">
+                    <div className="h-full bg-gradient-to-r from-cyan-300 via-amber-200 to-red-500 transition-all duration-500" style={{ width: `${fillPercent}%` }} />
+                  </div>
+                </div>
+
+                <div className="arcade-slab px-4 py-5">
+                  <p className="mb-3 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Save Score</p>
+                  <form className="grid gap-3" onSubmit={handleLeaderboardSubmit}>
+                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                      Player name
+                      <input
+                        value={playerName}
+                        onChange={(event) => handlePlayerNameChange(event.target.value)}
+                        maxLength={24}
+                        placeholder="Your name"
+                        className="leaderboard-input"
+                        aria-label="Player name for global leaderboard"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="leaderboard-save-button"
+                      disabled={!canSubmitScore || submitScoreMutation.isPending}
+                    >
+                      {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : gameOver ? "Save Record" : "Finish Game to Save"}
+                    </button>
+                    <p className="font-['IBM_Plex_Sans'] text-[0.68rem] leading-5 text-stone-400">
+                      {score <= 0
+                        ? "Score at least one point before saving a global record."
+                        : gameOver
+                          ? "Save this completed run globally under the remembered public display name."
+                          : "Finish the game first; records can only be saved after GAME OVER."}
+                    </p>
+                  </form>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
+            <div className="space-y-5">
+              <div className="overflow-hidden border border-stone-700/80 bg-black/40 shadow-[8px_8px_0_rgba(0,0,0,.4)]">
+                <img src={STRIP_ASSET} alt="Colored game marbles on an arcade panel" className="h-28 w-full object-cover" />
+              </div>
+
+              <div className={`border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
+                <p className="mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
+                <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
+              </div>
+
+              <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>
+                <h2 className="mb-3 font-['Bebas_Neue'] text-4xl tracking-[0.08em] text-stone-50">Global Records</h2>
+                {leaderboardQuery.isLoading ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-300">Loading the leaderboard signal...</p>
+                ) : leaderboardQuery.isError ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-red-200">Global leaderboard is temporarily unavailable.</p>
+                ) : leaderboardRecords.length === 0 ? (
+                  <p className="font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-300">No records yet. Be the first pilot on the board.</p>
+                ) : (
+                  <ol className="leaderboard-list">
+                    {leaderboardRecords.map((record, index) => (
+                      <li key={record.id} className="leaderboard-row">
+                        <span className="leaderboard-rank">#{index + 1}</span>
+                        <span className="leaderboard-name">{record.playerName}</span>
+                        <span className="leaderboard-score">{record.score}</span>
+                        <span className="leaderboard-moves">{record.moves} moves</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={handleSuggestMove}
+                  className="cabinet-button cabinet-button-cyan group"
+                  disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
+                >
+                  <Target size={18} className="transition-transform group-hover:scale-110" />
+                  Suggest Move
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleDemo}
+                  className={`cabinet-button group ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                  disabled={gameOver && !isDemoRunning}
+                >
+                  {isDemoRunning ? <Pause size={18} /> : <Bot size={18} className="transition-transform group-hover:rotate-6" />}
+                  {isDemoRunning ? "Stop Demo" : "Demo"}
+                </button>
+              </div>
+              <button type="button" onClick={resetGame} className="cabinet-button group">
+                <RotateCcw size={18} className="transition-transform group-hover:-rotate-45" />
+                New Game
+              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="mini-stat"><Trophy size={16} /> Best {bestScore}</div>
+                <div className="mini-stat"><Sparkles size={16} /> Lines ≥ {LINE_LENGTH}</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  );
+}
