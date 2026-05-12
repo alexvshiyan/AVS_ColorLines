@@ -18,7 +18,6 @@ const MOVE_HOP_MS = 135;
 const SELECTED_BOUNCE_HALF_MS = 650;
 const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
 const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
-const PLAYER_LOCATION_STORAGE_KEY = "colorlines-player-location";
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -248,7 +247,6 @@ export default function Home() {
   const [bestScore, setBestScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [playerName, setPlayerName] = useState("");
-  const [playerLocation, setPlayerLocation] = useState("");
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const trpcUtils = trpc.useUtils();
   const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
@@ -281,8 +279,6 @@ export default function Home() {
     if (stored) setBestScore(Number(stored));
     const storedPlayerName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
     if (storedPlayerName) setPlayerName(storedPlayerName);
-    const storedPlayerLocation = window.localStorage.getItem(PLAYER_LOCATION_STORAGE_KEY);
-    if (storedPlayerLocation) setPlayerLocation(storedPlayerLocation);
 
     return () => {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
@@ -693,12 +689,7 @@ export default function Home() {
     }
   }, []);
 
-  const handlePlayerLocationChange = useCallback((value: string) => {
-    setPlayerLocation(value);
-    if (value.trim()) {
-      window.localStorage.setItem(PLAYER_LOCATION_STORAGE_KEY, value);
-    }
-  }, []);
+
 
   const handleLeaderboardSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -707,17 +698,13 @@ export default function Home() {
       if (playerName.trim()) {
         window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
       }
-      if (playerLocation.trim()) {
-        window.localStorage.setItem(PLAYER_LOCATION_STORAGE_KEY, playerLocation);
-      }
       submitScoreMutation.mutate({
         playerName,
         score,
         moves,
-        location: playerLocation,
       });
     },
-    [gameOver, moves, playerLocation, playerName, score, submitScoreMutation, submittedScore],
+    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore],
   );
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
@@ -793,8 +780,8 @@ export default function Home() {
                 </div>
               </section>
 
-              <aside className="fit-status-rail grid gap-3">
-                <div className="arcade-slab fit-side-card px-4 py-5">
+              <aside className="fit-status-rail grid gap-2">
+                <div className="arcade-slab fit-side-card px-2 py-3">
                   <p className="font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Score</p>
                   <div className="fit-score font-['Bebas_Neue'] text-7xl leading-none tracking-[0.06em] text-amber-100 tabular-nums">{score}</div>
                   <div className="mt-3 grid grid-cols-2 gap-2 font-['IBM_Plex_Sans'] text-xs text-stone-300">
@@ -803,8 +790,8 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="arcade-slab px-4 py-5">
-                  <p className="mb-3 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Incoming</p>
+                <div className="arcade-slab px-2 py-3">
+                  <p className="mb-2 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Incoming</p>
                   <div className="flex items-center gap-3">
                     {nextBalls.map((color, index) => (
                       <span key={`${color}-${index}`} className={`preview-marble marble-${color}`} />
@@ -812,7 +799,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="arcade-slab px-4 py-5">
+                <div className="arcade-slab px-2 py-3">
                   <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.26em] text-stone-400">
                     <span>Capacity</span>
                     <span>{fillPercent}%</span>
@@ -822,47 +809,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="arcade-slab px-4 py-5">
-                  <p className="mb-3 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Save Score</p>
-                  <form className="fit-controls grid gap-3" onSubmit={handleLeaderboardSubmit}>
-                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
-                      Player name
-                      <input
-                        value={playerName}
-                        onChange={(event) => handlePlayerNameChange(event.target.value)}
-                        maxLength={24}
-                        placeholder="Your name"
-                        className="leaderboard-input"
-                        aria-label="Player name for global leaderboard"
-                      />
-                    </label>
-                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
-                      Location
-                      <input
-                        value={playerLocation}
-                        onChange={(event) => handlePlayerLocationChange(event.target.value)}
-                        maxLength={40}
-                        placeholder="City, country"
-                        className="leaderboard-input"
-                        aria-label="Location for global leaderboard"
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="leaderboard-save-button"
-                      disabled={!canSubmitScore || submitScoreMutation.isPending}
-                    >
-                      {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : gameOver ? "Save Record" : "Finish Game to Save"}
-                    </button>
-                    <p className="font-['IBM_Plex_Sans'] text-[0.68rem] leading-5 text-stone-400">
-                      {score <= 0
-                        ? "Score at least one point before saving a global record."
-                          : gameOver
-                          ? "Save this completed run globally with your public display name and location."
-                          : "Finish the game first; records can only be saved after GAME OVER."}
-                    </p>
-                  </form>
-                </div>
               </aside>
 
           <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
@@ -874,6 +820,37 @@ export default function Home() {
               <div className={`fit-message border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
                 <p className="fit-message-title mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
                 <p className="fit-message-body font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
+              </div>
+
+              <div className="arcade-slab px-4 py-4 mb-1">
+                <p className="mb-2 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Save Score</p>
+                <form className="fit-controls grid gap-2" onSubmit={handleLeaderboardSubmit}>
+                  <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                    Player name
+                    <input
+                      value={playerName}
+                      onChange={(event) => handlePlayerNameChange(event.target.value)}
+                      maxLength={24}
+                      placeholder="Your name"
+                      className="leaderboard-input"
+                      aria-label="Player name for global leaderboard"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="leaderboard-save-button"
+                    disabled={!canSubmitScore || submitScoreMutation.isPending}
+                  >
+                    {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : gameOver ? "Save Record" : "Finish Game to Save"}
+                  </button>
+                  <p className="font-['IBM_Plex_Sans'] text-[0.6rem] leading-4 text-stone-400">
+                    {score <= 0
+                      ? "Score at least one point before saving."
+                        : gameOver
+                        ? "Save your run to the global leaderboard."
+                        : "Finish the game first to save."}
+                  </p>
+                </form>
               </div>
 
               <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>
