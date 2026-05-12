@@ -223,6 +223,23 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       rgba(7, 20, 22, 0.65);
   }
 
+  .board-cell.cell-suggest-source {
+    border-color: rgba(255, 224, 158, 0.95);
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 224, 158, 0.34),
+      0 0 22px rgba(255, 204, 92, 0.2);
+  }
+
+  .board-cell.cell-suggest-target {
+    border-color: rgba(103, 232, 249, 0.95);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(103, 232, 249, 0.32), transparent 45%),
+      linear-gradient(135deg, rgba(103, 232, 249, 0.15), rgba(0, 0, 0, 0.25));
+    box-shadow:
+      inset 0 0 0 2px rgba(103, 232, 249, 0.3),
+      0 0 24px rgba(103, 232, 249, 0.22);
+  }
+
   .board-cell.cell-clearing {
     animation: cellFlash 220ms ease-in-out infinite alternate;
   }
@@ -354,6 +371,24 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     box-shadow:
       3px 3px 0 rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+
+  .cabinet-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+    filter: grayscale(0.3);
+  }
+
+  .cabinet-button-cyan {
+    border-color: rgba(103, 232, 249, 0.54);
+    background: linear-gradient(180deg, rgba(103, 232, 249, 0.94), rgba(14, 116, 144, 0.96));
+    color: #041014;
+  }
+
+  .cabinet-button-stop {
+    border-color: rgba(255, 123, 123, 0.52);
+    background: linear-gradient(180deg, rgba(255, 127, 91, 0.96), rgba(169, 38, 38, 0.96));
+    color: #fff7ed;
   }
 
   .rule-card {

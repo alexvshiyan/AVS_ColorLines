@@ -6,9 +6,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RotateCcw, Sparkles, Trophy, Zap } from "lucide-react";
+import { Bot, Pause, RotateCcw, Sparkles, Target, Trophy, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { hasAnyLegalMove } from "@/lib/colorLinesRules";
+import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -221,11 +221,14 @@ export default function Home() {
   const [nextBalls, setNextBalls] = useState<ColorId[]>(initial.nextBalls);
   const [selected, setSelected] = useState<Position | null>(null);
   const [pathPreview, setPathPreview] = useState<Position[]>([]);
+  const [suggestedMove, setSuggestedMove] = useState<ColorLinesMoveRecommendation | null>(null);
+  const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
   const [movingBall, setMovingBall] = useState<MovingBall>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const movementTimerRef = useRef<number | null>(null);
   const readyBounceTimerRef = useRef<number | null>(null);
+  const demoTimerRef = useRef<number | null>(null);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -267,6 +270,7 @@ export default function Home() {
     return () => {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
       if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
     };
   }, []);
 
@@ -288,8 +292,14 @@ export default function Home() {
     if (hasAnyLegalMove(board)) return;
 
     setGameOver(true);
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) {
+      window.clearTimeout(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
     setSelected(null);
     setPathPreview([]);
+    setSuggestedMove(null);
     setMessage({
       tone: "over",
       title: "GAME OVER",
@@ -362,6 +372,9 @@ export default function Home() {
     setNextBalls(fresh.nextBalls);
     setSelected(null);
     setPathPreview([]);
+    setSuggestedMove(null);
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
     setClearingCells([]);
     setMovingBall(null);
     setScore(0);
@@ -421,8 +434,14 @@ export default function Home() {
           const remaining = getEmptyCells(withNewBalls).length;
           if (!hasAnyLegalMove(withNewBalls)) {
             setGameOver(true);
+            setIsDemoRunning(false);
+            if (demoTimerRef.current) {
+              window.clearTimeout(demoTimerRef.current);
+              demoTimerRef.current = null;
+            }
             setSelected(null);
             setPathPreview([]);
+            setSuggestedMove(null);
             setMessage({
               tone: "over",
               title: "GAME OVER",
@@ -446,13 +465,13 @@ export default function Home() {
     [nextBalls],
   );
 
-  const moveSelectedBall = useCallback(
-    (destination: Position) => {
-      if (!selected || gameOver || movingBall) return;
-      const color = board[selected.row][selected.col];
-      if (!color || board[destination.row][destination.col]) return;
+  const executeMove = useCallback(
+    (source: Position, destination: Position) => {
+      if (gameOver || movingBall) return false;
+      const color = board[source.row][source.col];
+      if (!color || board[destination.row][destination.col]) return false;
 
-      const path = findPath(board, selected, destination);
+      const path = findPath(board, source, destination);
       if (!path.length) {
         setPathPreview([]);
         playBounceSound("blocked");
@@ -461,12 +480,13 @@ export default function Home() {
           title: "Path blocked",
           body: "That marble cannot reach the selected cell. Try a route with open orthogonal steps.",
         });
-        return;
+        return false;
       }
 
       const boardWithoutSource = cloneBoard(board);
-      boardWithoutSource[selected.row][selected.col] = null;
+      boardWithoutSource[source.row][source.col] = null;
       setSelected(null);
+      setSuggestedMove(null);
       setPathPreview(path);
       setMoves((value) => value + 1);
       setBoard(boardWithoutSource);
@@ -492,16 +512,122 @@ export default function Home() {
       };
 
       movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
+      return true;
     },
-    [board, gameOver, movingBall, playBounceSound, resolveClears, selected],
+    [board, gameOver, movingBall, playBounceSound, resolveClears],
   );
 
+  const moveSelectedBall = useCallback(
+    (destination: Position) => {
+      if (!selected) return;
+      executeMove(selected, destination);
+    },
+    [executeMove, selected],
+  );
+
+  const handleSuggestMove = useCallback(() => {
+    if (gameOver || movingBall || clearingCells.length) return;
+    const recommendation = recommendColorLinesMove(board);
+    if (!recommendation) {
+      setSuggestedMove(null);
+      setPathPreview([]);
+      playBounceSound("blocked");
+      setMessage({
+        tone: "blocked",
+        title: "No move found",
+        body: "The line-builder scanner cannot find a legal move from the current board.",
+      });
+      return;
+    }
+
+    setIsDemoRunning(false);
+    if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    setSelected(recommendation.from);
+    setSuggestedMove(recommendation);
+    setPathPreview(recommendation.path);
+    setMessage({
+      tone: recommendation.clearedCount ? "clear" : "ready",
+      title: recommendation.clearedCount ? "Suggested clearing move" : "Suggested line-builder move",
+      body: `${COLOR_LABELS[recommendation.color as ColorId]} ${String.fromCharCode(65 + recommendation.from.col)}${recommendation.from.row + 1} → ${String.fromCharCode(65 + recommendation.to.col)}${recommendation.to.row + 1}. This favors future five-in-line potential and open board control.`,
+    });
+  }, [board, clearingCells.length, gameOver, movingBall, playBounceSound]);
+
+  const handleToggleDemo = useCallback(() => {
+    if (isDemoRunning) {
+      setIsDemoRunning(false);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+      setMessage({
+        tone: "ready",
+        title: "Demo paused",
+        body: "Algorithmic play is stopped. You can continue manually from this exact board state.",
+      });
+      return;
+    }
+
+    if (gameOver) return;
+    setIsDemoRunning(true);
+    setSelected(null);
+    setPathPreview([]);
+    setSuggestedMove(null);
+    setMessage({
+      tone: "move",
+      title: "Demo running",
+      body: "The line-builder algorithm will choose and play moves automatically. Press Stop Demo whenever you want to continue manually.",
+    });
+  }, [gameOver, isDemoRunning]);
+
+  useEffect(() => {
+    if (demoTimerRef.current) {
+      window.clearTimeout(demoTimerRef.current);
+      demoTimerRef.current = null;
+    }
+
+    if (!isDemoRunning || gameOver || movingBall || clearingCells.length) return;
+
+    demoTimerRef.current = window.setTimeout(() => {
+      const recommendation = recommendColorLinesMove(board);
+      if (!recommendation) {
+        setIsDemoRunning(false);
+        setSuggestedMove(null);
+        setPathPreview([]);
+        setMessage({
+          tone: "over",
+          title: "Demo stopped",
+          body: "The algorithm found no legal continuation from the current board.",
+        });
+        return;
+      }
+
+      setSuggestedMove(recommendation);
+      setPathPreview(recommendation.path);
+      setSelected(recommendation.from);
+      setMessage({
+        tone: recommendation.clearedCount ? "clear" : "move",
+        title: "Demo move selected",
+        body: `${COLOR_LABELS[recommendation.color as ColorId]} ${String.fromCharCode(65 + recommendation.from.col)}${recommendation.from.row + 1} → ${String.fromCharCode(65 + recommendation.to.col)}${recommendation.to.row + 1}.`,
+      });
+      executeMove(recommendation.from, recommendation.to);
+    }, 700);
+
+    return () => {
+      if (demoTimerRef.current) {
+        window.clearTimeout(demoTimerRef.current);
+        demoTimerRef.current = null;
+      }
+    };
+  }, [board, clearingCells.length, executeMove, gameOver, isDemoRunning, movingBall]);
+
   const handleCellClick = (row: number, col: number) => {
+    if (isDemoRunning) {
+      setIsDemoRunning(false);
+      if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+    }
     if (gameOver || clearingCells.length) return;
     const color = board[row][col];
 
     if (color) {
       setSelected({ row, col });
+      setSuggestedMove(null);
       setPathPreview([]);
       setMessage({
         tone: "ready",
@@ -525,6 +651,7 @@ export default function Home() {
     }
 
     if (selected) {
+      setSuggestedMove(null);
       moveSelectedBall({ row, col });
     } else {
       playBounceSound("blocked");
@@ -621,6 +748,8 @@ export default function Home() {
                       const selectedCell = samePosition(selected, { row, col });
                       const inPath = pathPreview.some((cell) => cell.row === row && cell.col === col);
                       const isClearing = hasClearedCell(clearingCells, row, col);
+                      const isSuggestedFrom = Boolean(suggestedMove && suggestedMove.from.row === row && suggestedMove.from.col === col);
+                      const isSuggestedTo = Boolean(suggestedMove && suggestedMove.to.row === row && suggestedMove.to.col === col);
                       const movingHere = Boolean(
                         movingBall && movingBall.path[movingBall.step]?.row === row && movingBall.path[movingBall.step]?.col === col,
                       );
@@ -630,7 +759,7 @@ export default function Home() {
                           key={`${row}-${col}`}
                           type="button"
                           aria-label={visibleColor ? `${COLOR_LABELS[visibleColor]} marble at row ${row + 1}, column ${col + 1}` : `Empty cell at row ${row + 1}, column ${col + 1}`}
-                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isClearing ? "cell-clearing" : ""} ${movingHere ? "cell-moving" : ""}`}
+                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isSuggestedFrom ? "cell-suggest-source" : ""} ${isSuggestedTo ? "cell-suggest-target" : ""} ${isClearing ? "cell-clearing" : ""} ${movingHere ? "cell-moving" : ""}`}
                           onClick={() => handleCellClick(row, col)}
                           onMouseEnter={() => handleCellEnter(row, col)}
                         >
@@ -741,6 +870,26 @@ export default function Home() {
             </div>
 
             <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                <button
+                  type="button"
+                  onClick={handleSuggestMove}
+                  className="cabinet-button cabinet-button-cyan group"
+                  disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
+                >
+                  <Target size={18} className="transition-transform group-hover:scale-110" />
+                  Suggest Move
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleDemo}
+                  className={`cabinet-button group ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                  disabled={gameOver && !isDemoRunning}
+                >
+                  {isDemoRunning ? <Pause size={18} /> : <Bot size={18} className="transition-transform group-hover:rotate-6" />}
+                  {isDemoRunning ? "Stop Demo" : "Demo"}
+                </button>
+              </div>
               <button type="button" onClick={resetGame} className="cabinet-button group">
                 <RotateCcw size={18} className="transition-transform group-hover:-rotate-45" />
                 New Game

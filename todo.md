@@ -46,3 +46,12 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Run experiments across multiple strategy variants and summarize expected score, survival, and board-control metrics.
 - [x] Recommend a practical optimal play mode or heuristic for the player and possible in-game guidance improvements.
 - [x] Add and summarize an explicit board-control metric across strategies in the strategy analysis report.
+
+## Demo and Suggest Move Algorithm Controls
+
+- [x] Add a Suggest Move button that computes the line_builder recommendation for the current board and highlights the source cell, target cell, and path.
+- [x] Add a Demo button that automatically plays recommended moves using the algorithm at a readable pace.
+- [x] Allow the player to stop Demo mode at any time and continue the same game manually without resetting the board.
+- [x] Ensure manual moves clear any stale suggestion highlight and Demo stops safely on game over or when no legal recommendation exists.
+- [x] Add or update Vitest coverage for the move recommendation algorithm and validate with tests, TypeScript, and production build.
+- [x] Stop Demo mode explicitly when the game reaches Game Over inside automatic or manual move resolution.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasAnyLegalMove, type ColorLinesCell } from "./colorLinesRules";
+import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesCell } from "./colorLinesRules";
 
 function boardFromRows(rows: string[]): ColorLinesCell[][] {
   return rows.map((row) =>
@@ -27,5 +27,46 @@ describe("Color Lines legal move detection", () => {
     const board = boardFromRows(["...", "...", "..."]);
 
     expect(hasAnyLegalMove(board)).toBe(false);
+  });
+});
+
+describe("Color Lines move recommendation", () => {
+  it("recommends a move that completes an immediate five-marble line", () => {
+    const board = boardFromRows([
+      "RRRR.",
+      ".....",
+      ".....",
+      ".....",
+      "....R",
+    ]);
+
+    const recommendation = recommendColorLinesMove(board);
+
+    expect(recommendation).not.toBeNull();
+    expect(recommendation?.from).toEqual({ row: 4, col: 4 });
+    expect(recommendation?.to).toEqual({ row: 0, col: 4 });
+    expect(recommendation?.clearedCount).toBe(5);
+    expect(recommendation?.gained).toBeGreaterThan(0);
+  });
+
+  it("returns null when no marble can be moved", () => {
+    const board = boardFromRows(["RR", "BB"]);
+
+    expect(recommendColorLinesMove(board)).toBeNull();
+  });
+
+  it("includes a legal path from source to destination", () => {
+    const board = boardFromRows([
+      "R..",
+      ".B.",
+      "...",
+    ]);
+
+    const recommendation = recommendColorLinesMove(board);
+
+    expect(recommendation).not.toBeNull();
+    expect(recommendation?.path[0]).toEqual(recommendation?.from);
+    expect(recommendation?.path.at(-1)).toEqual(recommendation?.to);
+    expect(recommendation?.path.length).toBeGreaterThan(1);
   });
 });
