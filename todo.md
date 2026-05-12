@@ -55,3 +55,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Ensure manual moves clear any stale suggestion highlight and Demo stops safely on game over or when no legal recommendation exists.
 - [x] Add or update Vitest coverage for the move recommendation algorithm and validate with tests, TypeScript, and production build.
 - [x] Stop Demo mode explicitly when the game reaches Game Over inside automatic or manual move resolution.
+
+## Fit-to-Screen Working Area Refinement
+
+- [x] Make the game working area fit common laptop viewport heights so the board, score, incoming balls, and main controls are visible without excessive vertical scrolling.
+- [x] Preserve readability and the existing arcade visual style while reducing oversized spacing, panel heights, and top hero footprint on wide screens.
+- [x] Validate the responsive layout with TypeScript/build checks and a project checkpoint.
