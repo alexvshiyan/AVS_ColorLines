@@ -626,15 +626,15 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       min-height: 100svh;
       overflow: hidden;
       padding-block: clamp(0.35rem, 0.8vh, 0.6rem);
-      padding-inline: clamp(1rem, 2vw, 2rem);
+      padding-inline: clamp(0.5rem, 1.2vw, 1rem);
     }
 
     .fit-layout {
       display: grid;
-      grid-template-columns: 1fr 175px 255px;
+      grid-template-columns: 1fr 155px 230px;
       grid-template-rows: auto 1fr;
       height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
-      column-gap: clamp(0.45rem, 0.9vw, 0.7rem);
+      column-gap: clamp(0.4rem, 0.7vw, 0.6rem);
       row-gap: clamp(0.3rem, 0.7vh, 0.55rem);
       overflow: hidden;
     }
@@ -669,8 +669,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-kicker {
       padding-block: 0.2rem;
-      letter-spacing: 0.28em;
-      white-space: nowrap;
+      letter-spacing: 0.22em;
+      font-size: 0.62rem;
     }
 
     .fit-title {
@@ -701,11 +701,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .board-grid {
       /* Square board: constrained by viewport height minus header+padding */
-      width: min(100%, calc(100svh - 8rem));
-      max-width: calc(100svh - 8rem);
+      width: min(100%, calc(100svh - 9.5rem));
+      max-width: calc(100svh - 9.5rem);
       aspect-ratio: 1 / 1;
-      gap: clamp(0.12rem, 0.3vh, 0.2rem);
-      padding: clamp(0.2rem, 0.45vh, 0.32rem);
+      gap: clamp(0.11rem, 0.28vh, 0.18rem);
+      padding: clamp(0.18rem, 0.4vh, 0.28rem);
     }
 
     .board-cell {
@@ -727,16 +727,19 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .fit-status-rail {
-      gap: clamp(0.55rem, 1.15vh, 0.9rem);
+      gap: clamp(0.45rem, 0.95vh, 0.75rem);
+      min-width: 0;
+      overflow: hidden;
+      align-content: start;
     }
 
     .fit-side-card,
     .fit-status-rail > .arcade-slab {
-      padding: clamp(0.65rem, 1.35vh, 1rem);
+      padding: clamp(0.5rem, 1.1vh, 0.75rem);
     }
 
     .fit-score {
-      font-size: clamp(3.1rem, 6.7vh, 4.7rem);
+      font-size: clamp(2.5rem, 5.5vh, 3.8rem);
     }
 
     .preview-marble {
@@ -754,8 +757,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       height: 100%;
       max-height: 100%;
       overflow: hidden;
-      gap: clamp(0.55rem, 1.1vh, 0.85rem);
-      padding: clamp(0.65rem, 1.35vh, 0.95rem);
+      gap: clamp(0.45rem, 0.9vh, 0.7rem);
+      padding: clamp(0.5rem, 1.1vh, 0.8rem);
     }
 
     .fit-rail-content {

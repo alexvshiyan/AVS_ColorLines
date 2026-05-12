@@ -89,3 +89,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Remove empty top space by removing min-h-screen from fit-section and using CSS grid for fit-left.
 - [x] Reduce board cell size (board-grid constrained to calc(100svh - 13.5rem)) while keeping marble size unchanged.
 - [x] Validate with tests, TypeScript check, and preview screenshot.
+
+## Auto-Location for Leaderboard
+
+- [ ] Auto-detect user location from IP on score submission (server-side, free IP geolocation API)
+- [ ] Remove manual Location input field from save score form
+- [ ] Show location in leaderboard records table after save
