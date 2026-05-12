@@ -681,7 +681,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-board-shell {
       align-self: start;
-      overflow: hidden;
+      overflow: visible;
       min-width: 0;
       min-height: 0;
       padding: clamp(0.45rem, 1vh, 0.75rem);
@@ -701,8 +701,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .board-grid {
       /* Square board: constrained by viewport height minus header+padding */
-      width: min(100%, calc(100svh - 9.5rem));
-      max-width: calc(100svh - 9.5rem);
+      /* Square board: height = viewport - header(~2.5rem) - board-head(~2rem) - shell-padding(~1.5rem) - section-padding(~1.5rem) */
+      width: min(100%, calc(100svh - 11rem));
+      max-width: calc(100svh - 11rem);
       aspect-ratio: 1 / 1;
       gap: clamp(0.11rem, 0.28vh, 0.18rem);
       padding: clamp(0.18rem, 0.4vh, 0.28rem);
