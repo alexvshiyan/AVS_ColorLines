@@ -69,3 +69,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add a player-provided location field to score submission and display it for each leaderboard record, with a safe fallback for older records.
 - [x] Update leaderboard tests for top-5 limiting, timestamp visibility data, and location validation/fallback behavior.
 - [x] Validate with tests, TypeScript, production build, preview status, checkpoint, and report the result.
+
+## Right Panel Overlap and Leaderboard Cleanup Fix
+
+- [x] Fix the responsive cabinet layout so the right side panel never overlaps the score/save/game working areas at common desktop widths and browser zoom levels.
+- [x] Make all 5 top global records fit inside the visible Global Records panel without an internal scrollbar.
+- [x] Clear the existing global leaderboard records table as requested.
+- [x] Validate the layout/database changes with tests, TypeScript, production build, preview status, checkpoint, and report the result.
