@@ -625,21 +625,26 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       height: 100svh;
       min-height: 100svh;
       overflow: hidden;
-      padding-block: clamp(0.45rem, 1.2vh, 0.85rem);
+      padding-block: clamp(0.35rem, 0.8vh, 0.6rem);
+      padding-inline: clamp(1rem, 2vw, 2rem);
     }
 
     .fit-layout {
-      min-height: 0;
-      height: calc(100svh - clamp(0.9rem, 2.4vh, 1.7rem));
-      gap: clamp(0.75rem, 1.5vh, 1.1rem);
-      align-items: stretch;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      grid-template-rows: 1fr;
+      height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
+      gap: clamp(0.65rem, 1.3vh, 1rem);
+      overflow: hidden;
     }
 
     .fit-left {
+      display: grid;
+      grid-template-rows: auto 1fr;
       min-height: 0;
       min-width: 0;
-      flex: 1 1 0;
-      gap: clamp(0.55rem, 1.2vh, 1rem);
+      overflow: hidden;
+      gap: clamp(0.45rem, 1vh, 0.85rem);
     }
 
     .fit-header {
@@ -662,15 +667,18 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .fit-play-area {
-      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 165px;
       align-items: start;
-      gap: clamp(0.65rem, 1.35vh, 1rem);
-      grid-template-columns: minmax(0, 1fr) minmax(150px, 180px);
+      gap: clamp(0.55rem, 1.1vh, 0.85rem);
+      min-height: 0;
     }
 
     .fit-board-shell {
       align-self: start;
-      padding: clamp(0.55rem, 1.25vh, 0.9rem);
+      overflow: hidden;
+      min-width: 0;
+      padding: clamp(0.45rem, 1vh, 0.75rem);
     }
 
     .fit-board-head {
@@ -686,11 +694,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .board-grid {
-      width: min(100%, calc(100svh - 11rem));
-      min-width: 25.5rem;
-      margin-inline: auto;
-      gap: clamp(0.25rem, 0.75vh, 0.5rem);
-      padding: clamp(0.45rem, 1vh, 0.75rem);
+      width: min(100%, calc(100svh - 13.5rem));
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      gap: clamp(0.16rem, 0.4vh, 0.28rem);
+      padding: clamp(0.25rem, 0.6vh, 0.45rem);
     }
 
     .board-cell {
@@ -702,8 +710,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .marble {
-      width: clamp(1.45rem, 3.35vh, 2.15rem);
-      height: clamp(1.45rem, 3.35vh, 2.15rem);
+      width: clamp(1.5rem, 3.6vh, 2.3rem);
+      height: clamp(1.5rem, 3.6vh, 2.3rem);
     }
 
     .legend-dot {
@@ -736,8 +744,10 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .control-rail {
       min-height: 0;
-      max-height: calc(100svh - clamp(0.9rem, 2.4vh, 1.7rem));
+      height: 100%;
+      max-height: 100%;
       overflow: hidden;
+      flex-shrink: 0;
       gap: clamp(0.55rem, 1.1vh, 0.85rem);
       padding: clamp(0.65rem, 1.35vh, 0.95rem);
     }
