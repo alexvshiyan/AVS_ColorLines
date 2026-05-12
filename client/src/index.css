@@ -481,11 +481,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   .leaderboard-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 0.5rem 0.65rem;
+    gap: 0.38rem 0.65rem;
     align-items: center;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.38);
-    padding: 0.62rem 0.7rem;
+    padding: 0.58rem 0.7rem;
     box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.24);
   }
 
@@ -513,12 +513,24 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     letter-spacing: 0.06em;
   }
 
-  .leaderboard-moves {
+  .leaderboard-meta {
     grid-column: 2 / 4;
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 0.22rem 0.55rem;
     color: rgba(214, 211, 209, 0.62);
-    font-size: 0.68rem;
-    letter-spacing: 0.12em;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    line-height: 1.35;
     text-transform: uppercase;
+  }
+
+  .leaderboard-meta span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   @media (min-width: 640px) {
@@ -789,8 +801,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       font-size: clamp(1.1rem, 2.5vh, 1.35rem);
     }
 
-    .leaderboard-moves {
-      font-size: clamp(0.58rem, 1.1vh, 0.68rem);
+    .leaderboard-meta {
+      font-size: clamp(0.52rem, 1vh, 0.62rem);
+      gap: 0.16rem 0.42rem;
     }
 
     .cabinet-button {

@@ -15,6 +15,13 @@
       "when": 1778534493539,
       "tag": "0001_cold_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778594164047,
+      "tag": "0002_lucky_joystick",
+      "breakpoints": true
     }
   ]
 }
