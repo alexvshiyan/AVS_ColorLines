@@ -76,3 +76,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Make all 5 top global records fit inside the visible Global Records panel without an internal scrollbar.
 - [x] Clear the existing global leaderboard records table as requested.
 - [x] Validate the layout/database changes with tests, TypeScript, production build, preview status, checkpoint, and report the result.
+
+## Header Compact + Right Panel Overlap Fix (Round 2)
+
+- [x] Reduce the hero/header area height by ~50%: remove the large title block and description paragraph from the hero zone, keep only a compact single-line badge row so the game board is visible without scrolling.
+- [x] Fix the right control panel overlap: rewrite the cabinet grid so the right column has a fixed pixel width and the left area (board + score) always gets the remaining space, with no overflow or z-index stacking issues.
+- [x] Validate with tests, TypeScript check, production build, and preview screenshot.

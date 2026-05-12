@@ -637,31 +637,28 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-left {
       min-height: 0;
+      min-width: 0;
+      flex: 1 1 0;
       gap: clamp(0.55rem, 1.2vh, 1rem);
     }
 
     .fit-header {
       flex: 0 0 auto;
-      gap: clamp(0.75rem, 1.4vh, 1rem);
+      gap: clamp(0.6rem, 1.2vh, 0.9rem);
       padding-top: 0;
+      align-items: center;
     }
 
     .fit-kicker {
-      margin-bottom: 0.28rem;
-      padding-block: 0.24rem;
-      letter-spacing: 0.31em;
+      padding-block: 0.2rem;
+      letter-spacing: 0.28em;
+      white-space: nowrap;
     }
 
     .fit-title {
-      font-size: clamp(3.8rem, 7.3vh, 6.1rem);
-      line-height: 0.82;
-    }
-
-    .fit-intro {
-      max-width: min(35rem, 47vw);
-      padding: clamp(0.72rem, 1.4vh, 1rem);
-      font-size: clamp(0.78rem, 1.35vh, 0.88rem);
-      line-height: 1.55;
+      font-size: clamp(1.8rem, 3.8vh, 2.8rem);
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .fit-play-area {
@@ -689,7 +686,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .board-grid {
-      width: min(100%, calc(100svh - 15.5rem));
+      width: min(100%, calc(100svh - 11rem));
       min-width: 25.5rem;
       margin-inline: auto;
       gap: clamp(0.25rem, 0.75vh, 0.5rem);
@@ -823,20 +820,16 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       max-width: 1160px;
     }
 
-    .fit-intro {
-      display: none;
-    }
-
     .fit-header {
-      grid-template-columns: 1fr;
+      flex-wrap: wrap;
     }
 
     .fit-title {
-      font-size: clamp(3.2rem, 7vh, 4.9rem);
+      font-size: clamp(1.6rem, 3.4vh, 2.4rem);
     }
 
     .board-grid {
-      width: min(100%, calc(100svh - 13.4rem));
+      width: min(100%, calc(100svh - 9.5rem));
       min-width: 23.5rem;
     }
 
@@ -872,8 +865,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .fit-title {
-      font-size: clamp(2.85rem, 6.35vh, 4.35rem);
-      line-height: 0.8;
+      font-size: clamp(1.5rem, 3.1vh, 2.2rem);
     }
 
     .fit-play-area {
