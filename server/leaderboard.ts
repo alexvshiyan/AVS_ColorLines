@@ -47,6 +47,38 @@ export async function listLeaderboardRecords(limit?: number) {
     .limit(normalizeLeaderboardLimit(limit));
 }
 
+/**
+ * Check whether a given score qualifies for the top-5 leaderboard.
+ * Returns the projected rank (1-based) and whether it would displace the current 5th place.
+ */
+export async function checkScoreQualifies(
+  score: number,
+): Promise<{ qualifies: boolean; rank: number; totalRecords: number }> {
+  const db = await getDb();
+  if (!db) {
+    // If DB unavailable, allow submission optimistically
+    return { qualifies: true, rank: 1, totalRecords: 0 };
+  }
+
+  const records = await listLeaderboardRecords(LEADERBOARD_MAX_LIMIT);
+  const totalRecords = records.length;
+
+  if (totalRecords < LEADERBOARD_MAX_LIMIT) {
+    // Fewer than 5 records — always qualifies
+    const rank = records.filter((r) => r.score > score).length + 1;
+    return { qualifies: true, rank, totalRecords };
+  }
+
+  // Exactly 5 records — check if score beats the lowest (5th place)
+  const lowestScore = records[records.length - 1]?.score ?? 0;
+  if (score > lowestScore) {
+    const rank = records.filter((r) => r.score > score).length + 1;
+    return { qualifies: true, rank, totalRecords };
+  }
+
+  return { qualifies: false, rank: totalRecords + 1, totalRecords };
+}
+
 export async function createLeaderboardRecord(input: CreateLeaderboardRecordInput) {
   const db = await getDb();
   if (!db) {

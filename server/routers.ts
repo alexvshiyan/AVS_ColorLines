@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { createLeaderboardRecord, listLeaderboardRecords, normalizeLeaderboardLimit, sanitizePlayerName } from "./leaderboard";
+import { createLeaderboardRecord, listLeaderboardRecords, normalizeLeaderboardLimit, sanitizePlayerName, checkScoreQualifies } from "./leaderboard";
 
 /** Resolve city+country from a client IP using ip-api.com (free, no key required). */
 async function resolveLocationFromIp(ip: string): Promise<string> {
@@ -50,6 +50,9 @@ export const appRouter = router({
     list: publicProcedure
       .input(z.object({ limit: z.number().int().min(1).max(5).optional() }).optional())
       .query(({ input }) => listLeaderboardRecords(normalizeLeaderboardLimit(input?.limit))),
+    qualifies: publicProcedure
+      .input(z.object({ score: z.number().int().min(0) }))
+      .query(({ input }) => checkScoreQualifies(input.score)),
     submit: publicProcedure
       .input(
         z.object({
