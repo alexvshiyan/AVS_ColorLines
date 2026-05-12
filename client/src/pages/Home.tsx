@@ -740,20 +740,15 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,193,91,.13),transparent_28%),radial-gradient(circle_at_78%_62%,rgba(0,229,255,.11),transparent_24%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.13] mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
 
-        <div className="fit-layout relative mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-7xl grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="fit-left flex flex-col justify-between gap-5">
-            <header className="fit-header grid gap-4 pt-2 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="fit-kicker mb-2 inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
-                  Classic Color Lines / Browser Cabinet
-                </p>
-                <h1 className="fit-title font-['Bebas_Neue'] text-6xl leading-[0.86] tracking-[0.055em] text-stone-50 sm:text-7xl lg:text-8xl">
-                  Color<br className="hidden sm:block" /> Lines
-                </h1>
-              </div>
-              <div className="fit-intro max-w-xl border-l-4 border-amber-300/60 bg-black/45 p-4 font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200 shadow-[10px_10px_0_rgba(0,0,0,.35)] backdrop-blur-md">
-                Move one marble per turn. If the move does not clear a line, the incoming queue deploys three new marbles. Clear five or more matching marbles in a row, column, or diagonal.
-              </div>
+        <div className="fit-layout relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col gap-5 lg:flex-row">
+          <div className="fit-left min-w-0 flex-1 flex flex-col justify-between gap-5">
+            <header className="fit-header flex flex-row items-center gap-4 pt-1">
+              <p className="fit-kicker inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
+                Classic Color Lines / Browser Cabinet
+              </p>
+              <h1 className="fit-title font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
+                Color Lines
+              </h1>
             </header>
 
             <div className="fit-play-area grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_180px]">
@@ -874,7 +869,7 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
+          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5 lg:w-[280px] lg:flex-shrink-0 xl:w-[300px]">
             <div className="fit-rail-content space-y-5">
               <div className="overflow-hidden border border-stone-700/80 bg-black/40 shadow-[8px_8px_0_rgba(0,0,0,.4)]">
                 <img src={STRIP_ASSET} alt="Colored game marbles on an arcade panel" className="fit-strip h-28 w-full object-cover" />
