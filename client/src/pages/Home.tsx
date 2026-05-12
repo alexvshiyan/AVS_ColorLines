@@ -15,7 +15,8 @@ const STARTING_BALLS = 5;
 const NEXT_BALLS = 3;
 const LINE_LENGTH = 5;
 const MOVE_HOP_MS = 135;
-const READY_BOUNCE_MS = 820;
+const SELECTED_BOUNCE_HALF_MS = 650;
+const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
 const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
 
 const HERO_ASSET =
@@ -311,18 +312,18 @@ export default function Home() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const filter = context.createBiquadFilter();
-    const baseFrequency = variant === "ready" ? 205 : variant === "blocked" ? 150 : 278;
-    const peakFrequency = variant === "ready" ? 275 : variant === "blocked" ? 100 : 455;
-    const duration = variant === "ready" ? 0.18 : variant === "blocked" ? 0.14 : 0.105;
+    const baseFrequency = variant === "ready" ? 178 : variant === "blocked" ? 150 : 278;
+    const peakFrequency = variant === "ready" ? 236 : variant === "blocked" ? 100 : 455;
+    const duration = variant === "ready" ? 0.12 : variant === "blocked" ? 0.14 : 0.105;
 
-    oscillator.type = variant === "blocked" ? "triangle" : "sine";
+    oscillator.type = variant === "ready" ? "triangle" : variant === "blocked" ? "triangle" : "sine";
     oscillator.frequency.setValueAtTime(baseFrequency, now);
     oscillator.frequency.exponentialRampToValueAtTime(peakFrequency, now + duration * 0.36);
     oscillator.frequency.exponentialRampToValueAtTime(Math.max(80, baseFrequency * 0.72), now + duration);
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(variant === "ready" ? 850 : variant === "blocked" ? 600 : 1450, now);
+    filter.frequency.setValueAtTime(variant === "ready" ? 520 : variant === "blocked" ? 600 : 1450, now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.035 : 0.065, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.022 : 0.065, now + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     oscillator.connect(filter);
@@ -340,8 +341,10 @@ export default function Home() {
 
     if (!selected || movingBall || gameOver || clearingCells.length) return;
 
-    playBounceSound("ready");
-    readyBounceTimerRef.current = window.setInterval(() => playBounceSound("ready"), READY_BOUNCE_MS);
+    readyBounceTimerRef.current = window.setTimeout(() => {
+      playBounceSound("ready");
+      readyBounceTimerRef.current = window.setInterval(() => playBounceSound("ready"), READY_BOUNCE_MS);
+    }, READY_BOUNCE_MS);
 
     return () => {
       if (readyBounceTimerRef.current) {

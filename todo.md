@@ -33,3 +33,8 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Allow saving a leaderboard record only after the game has ended.
 - [x] Remember the first entered player name locally on this computer while still allowing the player to edit it.
 - [x] Validate the refinements with tests, TypeScript, production build, checkpoint, and GitHub sync.
+
+## Selected Ball Waiting Sound Refinement
+
+- [x] Synchronize the selected-ball waiting sound with the slow bounce rhythm of the selected marble.
+- [ ] Save a checkpoint for the sound refinement and sync it to GitHub after the successful checks.
