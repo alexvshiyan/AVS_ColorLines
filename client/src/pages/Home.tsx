@@ -295,13 +295,19 @@ export default function Home() {
     };
   }, []);
 
+  // Stable ref so the popup useEffect can call playFanfare without ordering constraints
+  const playFanfareRef = useRef<(() => void) | null>(null);
+
   // Open score popup when qualification result arrives
   useEffect(() => {
     if (!qualifiesQuery.data) return;
     setQualifyResult(qualifiesQuery.data);
     if (qualifiesQuery.data.qualifies && submittedScore !== score) {
-      // Small delay so the game-over message settles first
-      const t = window.setTimeout(() => setShowScorePopup(true), 600);
+      // Small delay so the game-over message settles first, then show popup + fanfare
+      const t = window.setTimeout(() => {
+        setShowScorePopup(true);
+        playFanfareRef.current?.();
+      }, 600);
       return () => window.clearTimeout(t);
     }
   }, [qualifiesQuery.data, score, submittedScore]);
@@ -341,6 +347,88 @@ export default function Home() {
 
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
+
+  /** Play a short arcade fanfare: rising 4-note arpeggio followed by a triumphant chord swell. */
+  const playFanfare = useCallback(() => {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = ctx;
+    if (ctx.state === "suspended") void ctx.resume();
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 0.02);
+    masterGain.gain.setValueAtTime(0.28, ctx.currentTime + 1.1);
+    masterGain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 1.5);
+    masterGain.connect(ctx.destination);
+
+    // Rising arpeggio: C5 → E5 → G5 → C6, each 120ms apart
+    const arpeggioNotes = [523.25, 659.25, 783.99, 1046.5];
+    arpeggioNotes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = freq * 1.5;
+      filter.Q.value = 1.2;
+
+      const start = ctx.currentTime + i * 0.12;
+      const end = start + 0.18;
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, start);
+      // Slight pitch shimmer for arcade feel
+      osc.frequency.linearRampToValueAtTime(freq * 1.012, start + 0.06);
+      osc.frequency.linearRampToValueAtTime(freq, end);
+
+      noteGain.gain.setValueAtTime(0.0001, start);
+      noteGain.gain.linearRampToValueAtTime(0.7, start + 0.018);
+      noteGain.gain.setValueAtTime(0.7, end - 0.04);
+      noteGain.gain.linearRampToValueAtTime(0.0001, end);
+
+      osc.connect(filter);
+      filter.connect(noteGain);
+      noteGain.connect(masterGain);
+      osc.start(start);
+      osc.stop(end + 0.01);
+    });
+
+    // Final chord swell: C5 + E5 + G5 together
+    const chordNotes = [523.25, 659.25, 783.99];
+    const chordStart = ctx.currentTime + 0.52;
+    chordNotes.forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const noteGain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, chordStart);
+      noteGain.gain.setValueAtTime(0.0001, chordStart);
+      noteGain.gain.linearRampToValueAtTime(0.55, chordStart + 0.06);
+      noteGain.gain.setValueAtTime(0.55, chordStart + 0.55);
+      noteGain.gain.linearRampToValueAtTime(0.0001, chordStart + 0.95);
+      osc.connect(noteGain);
+      noteGain.connect(masterGain);
+      osc.start(chordStart);
+      osc.stop(chordStart + 1.0);
+    });
+
+    // Bright shimmer overtone on top of chord
+    const shimmer = ctx.createOscillator();
+    const shimmerGain = ctx.createGain();
+    shimmer.type = "sine";
+    shimmer.frequency.setValueAtTime(2093, chordStart); // C7
+    shimmerGain.gain.setValueAtTime(0.0001, chordStart);
+    shimmerGain.gain.linearRampToValueAtTime(0.18, chordStart + 0.04);
+    shimmerGain.gain.linearRampToValueAtTime(0.0001, chordStart + 0.5);
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(masterGain);
+    shimmer.start(chordStart);
+    shimmer.stop(chordStart + 0.55);
+  }, []);
+
+  // Keep the ref in sync so the popup useEffect can call it without ordering issues
+  playFanfareRef.current = playFanfare;
 
   const playBounceSound = useCallback((variant: "ready" | "hop" | "blocked" = "hop") => {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
