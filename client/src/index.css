@@ -631,7 +631,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-layout {
       display: grid;
-      grid-template-columns: 1fr 140px 265px;
+      grid-template-columns: 1fr 155px 250px;
       grid-template-rows: auto 1fr;
       height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
       column-gap: clamp(0.4rem, 0.7vw, 0.6rem);
@@ -699,28 +699,22 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       font-size: clamp(1.25rem, 2.35vh, 1.65rem);
     }
 
-    .board-grid {
-      /* Square board: constrained by viewport height minus header+padding */
-      /* Square board: height = viewport - header(~2.5rem) - board-head(~2rem) - shell-padding(~1.5rem) - section-padding(~1.5rem) */
-      width: min(100%, calc(100svh - 11rem));
-      max-width: calc(100svh - 11rem);
+     .board-grid {
+      /* Square board: constrained by viewport height AND width so cells stay small */
+      width: min(100%, calc(100svh - 11rem), 44vw);
+      max-width: min(calc(100svh - 11rem), 44vw);
       aspect-ratio: 1 / 1;
       gap: clamp(0.11rem, 0.28vh, 0.18rem);
       padding: clamp(0.18rem, 0.4vh, 0.28rem);
+      overflow: hidden;
     }
-
     .board-cell {
       min-height: 0;
     }
-
     .cell-coordinate {
       font-size: clamp(0.42rem, 0.75vh, 0.55rem);
     }
-
-    .marble {
-      width: clamp(1.5rem, 3.6vh, 2.3rem);
-      height: clamp(1.5rem, 3.6vh, 2.3rem);
-    }
+    /* On desktop, marble uses inset:15% (position:absolute) — do NOT override with explicit width/height */
 
     .legend-dot {
       width: clamp(0.48rem, 1.1vh, 0.7rem);
@@ -744,8 +738,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .preview-marble {
-      width: clamp(2.15rem, 5.3vh, 3.4rem);
-      height: clamp(2.15rem, 5.3vh, 3.4rem);
+      width: clamp(1.8rem, 4vh, 2.8rem);
+      height: clamp(1.8rem, 4vh, 2.8rem);
     }
 
     .leaderboard-input,

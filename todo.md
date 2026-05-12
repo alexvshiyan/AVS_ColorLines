@@ -92,6 +92,14 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 
 ## Auto-Location for Leaderboard
 
-- [ ] Auto-detect user location from IP on score submission (server-side, free IP geolocation API)
-- [ ] Remove manual Location input field from save score form
-- [ ] Show location in leaderboard records table after save
+- [x] Auto-detect user location from IP on score submission (server-side, free IP geolocation API)
+- [x] Remove manual Location input field from save score form
+- [x] Show location in leaderboard records table after save
+
+## Layout Fix Round 4 (from published site screenshot)
+
+- [x] Reduce board cell size so the board is smaller and fits better on wide screens (board-grid: 44vw)
+- [x] Fix marble centering inside cells (marble uses position:absolute; inset:15% — centered in square cells)
+- [x] Fix middle column (score/incoming/capacity) overlapping right panel (save score/records) — 3-col CSS grid
+- [x] Add build version number display in the UI footer/header so user can verify published version
+- [x] Fix row 9 overflow — added overflow:hidden to board-grid
