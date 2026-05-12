@@ -735,6 +735,9 @@ export default function Home() {
               <h1 className="fit-title font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
                 Color Lines
               </h1>
+              <span className="ml-auto font-['IBM_Plex_Sans'] text-[0.58rem] text-amber-100/30 tracking-[0.12em] uppercase select-none hidden lg:block">
+                build {__BUILD_VERSION__}
+              </span>
             </header>
 
               <section className="arcade-slab board-shell fit-board-shell p-2 sm:p-3" aria-label="Color Lines game board">
