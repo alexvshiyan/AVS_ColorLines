@@ -37,4 +37,4 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 ## Selected Ball Waiting Sound Refinement
 
 - [x] Synchronize the selected-ball waiting sound with the slow bounce rhythm of the selected marble.
-- [ ] Save a checkpoint for the sound refinement and sync it to GitHub after the successful checks.
+- [x] Save a checkpoint for the sound refinement and sync it to GitHub after the successful checks.
