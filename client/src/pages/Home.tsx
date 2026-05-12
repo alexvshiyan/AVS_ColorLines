@@ -18,6 +18,7 @@ const MOVE_HOP_MS = 135;
 const SELECTED_BOUNCE_HALF_MS = 650;
 const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
 const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
+const PLAYER_LOCATION_STORAGE_KEY = "colorlines-player-location";
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -211,6 +212,19 @@ function scoreForCleared(count: number) {
   return count * 2 + Math.max(0, count - LINE_LENGTH) * 3;
 }
 
+function formatRecordDateTime(value: Date | string | number) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return date.toLocaleString(undefined, {
+    year: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function hasClearedCell(cells: Position[], row: number, col: number) {
   return cells.some((cell) => cell.row === row && cell.col === col);
 }
@@ -234,9 +248,10 @@ export default function Home() {
   const [bestScore, setBestScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [playerName, setPlayerName] = useState("");
+  const [playerLocation, setPlayerLocation] = useState("");
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const trpcUtils = trpc.useUtils();
-  const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 10 });
+  const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
   const submitScoreMutation = trpc.leaderboard.submit.useMutation({
     onSuccess: () => {
       setSubmittedScore(score);
@@ -266,6 +281,8 @@ export default function Home() {
     if (stored) setBestScore(Number(stored));
     const storedPlayerName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
     if (storedPlayerName) setPlayerName(storedPlayerName);
+    const storedPlayerLocation = window.localStorage.getItem(PLAYER_LOCATION_STORAGE_KEY);
+    if (storedPlayerLocation) setPlayerLocation(storedPlayerLocation);
 
     return () => {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
@@ -676,6 +693,13 @@ export default function Home() {
     }
   }, []);
 
+  const handlePlayerLocationChange = useCallback((value: string) => {
+    setPlayerLocation(value);
+    if (value.trim()) {
+      window.localStorage.setItem(PLAYER_LOCATION_STORAGE_KEY, value);
+    }
+  }, []);
+
   const handleLeaderboardSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -683,13 +707,17 @@ export default function Home() {
       if (playerName.trim()) {
         window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
       }
+      if (playerLocation.trim()) {
+        window.localStorage.setItem(PLAYER_LOCATION_STORAGE_KEY, playerLocation);
+      }
       submitScoreMutation.mutate({
         playerName,
         score,
         moves,
+        location: playerLocation,
       });
     },
-    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore],
+    [gameOver, moves, playerLocation, playerName, score, submitScoreMutation, submittedScore],
   );
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
@@ -815,6 +843,17 @@ export default function Home() {
                         aria-label="Player name for global leaderboard"
                       />
                     </label>
+                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                      Location
+                      <input
+                        value={playerLocation}
+                        onChange={(event) => handlePlayerLocationChange(event.target.value)}
+                        maxLength={40}
+                        placeholder="City, country"
+                        className="leaderboard-input"
+                        aria-label="Location for global leaderboard"
+                      />
+                    </label>
                     <button
                       type="submit"
                       className="leaderboard-save-button"
@@ -825,8 +864,8 @@ export default function Home() {
                     <p className="font-['IBM_Plex_Sans'] text-[0.68rem] leading-5 text-stone-400">
                       {score <= 0
                         ? "Score at least one point before saving a global record."
-                        : gameOver
-                          ? "Save this completed run globally under the remembered public display name."
+                          : gameOver
+                          ? "Save this completed run globally with your public display name and location."
                           : "Finish the game first; records can only be saved after GAME OVER."}
                     </p>
                   </form>
@@ -861,7 +900,11 @@ export default function Home() {
                         <span className="leaderboard-rank">#{index + 1}</span>
                         <span className="leaderboard-name">{record.playerName}</span>
                         <span className="leaderboard-score">{record.score}</span>
-                        <span className="leaderboard-moves">{record.moves} moves</span>
+                        <span className="leaderboard-meta">
+                          <span>{record.moves} moves</span>
+                          <span>{formatRecordDateTime(record.createdAt)}</span>
+                          <span>{record.location || "Unknown location"}</span>
+                        </span>
                       </li>
                     ))}
                   </ol>

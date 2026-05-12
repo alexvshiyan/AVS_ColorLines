@@ -1,0 +1,1 @@
+ALTER TABLE `leaderboard_records` ADD `location` varchar(80) DEFAULT 'Unknown location' NOT NULL;

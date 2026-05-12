@@ -32,6 +32,7 @@ export const leaderboardRecords = mysqlTable(
     playerName: varchar("playerName", { length: 32 }).notNull(),
     score: int("score").notNull(),
     moves: int("moves").notNull(),
+    location: varchar("location", { length: 80 }).default("Unknown location").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({

@@ -61,3 +61,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Make the game working area fit common laptop viewport heights so the board, score, incoming balls, and main controls are visible without excessive vertical scrolling.
 - [x] Preserve readability and the existing arcade visual style while reducing oversized spacing, panel heights, and top hero footprint on wide screens.
 - [x] Validate the responsive layout with TypeScript/build checks and a project checkpoint.
+
+## Leaderboard Top Records Metadata Update
+
+- [x] Limit the global records/history display and backend query to the top 5 records.
+- [x] Show each record's saved date and time in the Global Records panel.
+- [x] Add a player-provided location field to score submission and display it for each leaderboard record, with a safe fallback for older records.
+- [x] Update leaderboard tests for top-5 limiting, timestamp visibility data, and location validation/fallback behavior.
+- [x] Validate with tests, TypeScript, production build, preview status, checkpoint, and report the result.
