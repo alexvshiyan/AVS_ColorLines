@@ -248,11 +248,14 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
+  const [showScorePopup, setShowScorePopup] = useState(false);
+  const [qualifyResult, setQualifyResult] = useState<{ qualifies: boolean; rank: number; totalRecords: number } | null>(null);
   const trpcUtils = trpc.useUtils();
   const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
   const submitScoreMutation = trpc.leaderboard.submit.useMutation({
     onSuccess: () => {
       setSubmittedScore(score);
+      setShowScorePopup(false);
       void trpcUtils.leaderboard.list.invalidate();
       setMessage({
         tone: "clear",
@@ -268,6 +271,11 @@ export default function Home() {
       });
     },
   });
+  // Query to check top-5 qualification — only runs when game is over and score > 0
+  const qualifiesQuery = trpc.leaderboard.qualifies.useQuery(
+    { score },
+    { enabled: gameOver && score > 0 && submittedScore !== score },
+  );
   const [message, setMessage] = useState<GameMessage>({
     tone: "ready",
     title: "Cabinet armed",
@@ -286,6 +294,17 @@ export default function Home() {
       if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
     };
   }, []);
+
+  // Open score popup when qualification result arrives
+  useEffect(() => {
+    if (!qualifiesQuery.data) return;
+    setQualifyResult(qualifiesQuery.data);
+    if (qualifiesQuery.data.qualifies && submittedScore !== score) {
+      // Small delay so the game-over message settles first
+      const t = window.setTimeout(() => setShowScorePopup(true), 600);
+      return () => window.clearTimeout(t);
+    }
+  }, [qualifiesQuery.data, score, submittedScore]);
 
   useEffect(() => {
     if (score > bestScore) {
@@ -394,6 +413,8 @@ export default function Home() {
     setMoves(0);
     setGameOver(false);
     setSubmittedScore(null);
+    setShowScorePopup(false);
+    setQualifyResult(null);
     setMessage({
       tone: "ready",
       title: "New board online",
@@ -692,8 +713,8 @@ export default function Home() {
 
 
   const handleLeaderboardSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+    (event?: FormEvent<HTMLFormElement>) => {
+      if (event) event.preventDefault();
       if (!gameOver || score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
       if (playerName.trim()) {
         window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
@@ -814,42 +835,78 @@ export default function Home() {
 
               </aside>
 
-          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
-            <div className="fit-rail-content space-y-5">
-              <div className={`fit-message border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
-                <p className="fit-message-title mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
-                <p className="fit-message-body font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
-              </div>
+          {/* ── Score Qualification Pop-up ── */}
+          {showScorePopup && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowScorePopup(false); }}
+            >
+              <div
+                className="relative mx-4 w-full max-w-sm border border-amber-300/40 bg-[#0d0d0d] p-6 shadow-[12px_12px_0_rgba(255,196,97,.18)] outline outline-1 outline-amber-300/10"
+                style={{ backgroundImage: `linear-gradient(rgba(10,10,10,.92), rgba(10,10,10,.97)), url(${PANEL_ASSET})` }}
+              >
+                {/* Chamfer corner decoration */}
+                <div className="pointer-events-none absolute inset-[6px] border border-amber-200/10 [clip-path:polygon(0_10px,10px_0,100%_0,100%_calc(100%-10px),calc(100%-10px)_100%,0_100%)]" />
 
-              <div className="arcade-slab px-4 py-4 mb-1">
-                <p className="mb-2 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Save Score</p>
-                <form className="fit-controls grid gap-2" onSubmit={handleLeaderboardSubmit}>
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-['IBM_Plex_Sans'] text-[0.6rem] uppercase tracking-[0.38em] text-amber-300/70">New Record</p>
+                    <p className="font-['Bebas_Neue'] text-4xl leading-none tracking-[0.06em] text-amber-100">
+                      {qualifyResult ? `Rank #${qualifyResult.rank}` : 'Top 5!'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-['IBM_Plex_Sans'] text-[0.6rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                    <p className="font-['Bebas_Neue'] text-3xl leading-none text-stone-100 tabular-nums">{score}</p>
+                  </div>
+                </div>
+
+                <p className="mb-4 font-['IBM_Plex_Sans'] text-xs leading-5 text-stone-300">
+                  {qualifyResult && qualifyResult.totalRecords < 5
+                    ? `You're among the first ${qualifyResult.totalRecords + 1} pilots on the board. Enter your name to claim your spot.`
+                    : `Your score enters the global top 5. Enter your call sign to lock in the record.`}
+                </p>
+
+                <form
+                  className="grid gap-3"
+                  onSubmit={(e) => { e.preventDefault(); handleLeaderboardSubmit(); }}
+                >
                   <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
-                    Player name
+                    Call sign / Player name
                     <input
                       value={playerName}
-                      onChange={(event) => handlePlayerNameChange(event.target.value)}
+                      onChange={(e) => handlePlayerNameChange(e.target.value)}
                       maxLength={24}
                       placeholder="Your name"
                       className="leaderboard-input"
                       aria-label="Player name for global leaderboard"
+                      autoFocus
                     />
                   </label>
                   <button
                     type="submit"
                     className="leaderboard-save-button"
-                    disabled={!canSubmitScore || submitScoreMutation.isPending}
+                    disabled={!playerName.trim() || submitScoreMutation.isPending}
                   >
-                    {submitScoreMutation.isPending ? "Saving..." : submittedScore === score ? "Saved" : gameOver ? "Save Record" : "Finish Game to Save"}
+                    {submitScoreMutation.isPending ? 'Transmitting...' : 'Confirm Record'}
                   </button>
-                  <p className="font-['IBM_Plex_Sans'] text-[0.6rem] leading-4 text-stone-400">
-                    {score <= 0
-                      ? "Score at least one point before saving."
-                        : gameOver
-                        ? "Save your run to the global leaderboard."
-                        : "Finish the game first to save."}
-                  </p>
+                  <button
+                    type="button"
+                    className="font-['IBM_Plex_Sans'] text-[0.65rem] uppercase tracking-[0.28em] text-stone-500 hover:text-stone-300 transition-colors"
+                    onClick={() => setShowScorePopup(false)}
+                  >
+                    Skip — don't save
+                  </button>
                 </form>
+              </div>
+            </div>
+          )}
+
+          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
+            <div className="fit-rail-content space-y-5">
+              <div className={`fit-message border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
+                <p className="fit-message-title mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
+                <p className="fit-message-body font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
               </div>
 
               <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>

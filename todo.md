@@ -103,3 +103,14 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Fix middle column (score/incoming/capacity) overlapping right panel (save score/records) — 3-col CSS grid
 - [x] Add build version number display in the UI footer/header so user can verify published version
 - [x] Fix row 9 overflow — added overflow:hidden to board-grid
+
+## Save Score Pop-up (Top-5 Only)
+
+- [x] Remove the always-visible Save Score form from the control-rail right panel
+- [x] Add a tRPC query to check if a given score qualifies for top-5 (score > 5th place or fewer than 5 records)
+- [x] On game over, automatically check if the score qualifies for top-5
+- [x] Show a pop-up dialog (arcade-styled) with player name input only when score qualifies
+- [x] Pop-up should show the player's rank position (e.g. "Rank #3")
+- [x] Pop-up can be dismissed without saving (player can skip)
+- [x] After saving, refresh the leaderboard and close the pop-up
+- [x] Validate with tests, TypeScript, production build, checkpoint
