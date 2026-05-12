@@ -82,3 +82,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Reduce the hero/header area height by ~50%: remove the large title block and description paragraph from the hero zone, keep only a compact single-line badge row so the game board is visible without scrolling.
 - [x] Fix the right control panel overlap: rewrite the cabinet grid so the right column has a fixed pixel width and the left area (board + score) always gets the remaining space, with no overflow or z-index stacking issues.
 - [x] Validate with tests, TypeScript check, production build, and preview screenshot.
+
+## Layout Fix: Right Panel Overlap + Top Space + Cell Size (Round 3)
+
+- [x] Fix right panel (score/save) overlapping the game board by switching fit-layout to CSS grid with explicit columns (1fr 280px).
+- [x] Remove empty top space by removing min-h-screen from fit-section and using CSS grid for fit-left.
+- [x] Reduce board cell size (board-grid constrained to calc(100svh - 13.5rem)) while keeping marble size unchanged.
+- [x] Validate with tests, TypeScript check, and preview screenshot.
