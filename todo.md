@@ -114,3 +114,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Pop-up can be dismissed without saving (player can skip)
 - [x] After saving, refresh the leaderboard and close the pop-up
 - [x] Validate with tests, TypeScript, production build, checkpoint
+
+## Top-5 Fanfare Sound Effect
+
+- [x] Add playFanfare() function using Web Audio API: rising arpeggio (4 notes) + final chord swell
+- [x] Call playFanfare() when the top-5 pop-up is shown (inside the useEffect that opens it)
+- [x] Validate with TypeScript check, build, checkpoint
