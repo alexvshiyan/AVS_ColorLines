@@ -631,27 +631,40 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-layout {
       display: grid;
-      grid-template-columns: 1fr 280px;
-      grid-template-rows: 1fr;
-      height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
-      gap: clamp(0.65rem, 1.3vh, 1rem);
-      overflow: hidden;
-    }
-
-    .fit-left {
-      display: grid;
+      grid-template-columns: 1fr 175px 255px;
       grid-template-rows: auto 1fr;
-      min-height: 0;
-      min-width: 0;
+      height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
+      column-gap: clamp(0.45rem, 0.9vw, 0.7rem);
+      row-gap: clamp(0.3rem, 0.7vh, 0.55rem);
       overflow: hidden;
-      gap: clamp(0.45rem, 1vh, 0.85rem);
     }
 
+    /* header spans all 3 columns */
     .fit-header {
+      grid-column: 1 / -1;
+      grid-row: 1;
       flex: 0 0 auto;
       gap: clamp(0.6rem, 1.2vh, 0.9rem);
       padding-top: 0;
       align-items: center;
+    }
+
+    /* board takes col 1, row 2 */
+    .fit-board-shell {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    /* score/save rail takes col 2, row 2 */
+    .fit-status-rail {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    /* control rail takes col 3, row 2 */
+    .control-rail {
+      grid-column: 3;
+      grid-row: 2;
     }
 
     .fit-kicker {
@@ -666,18 +679,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       white-space: nowrap;
     }
 
-    .fit-play-area {
-      display: grid;
-      grid-template-columns: 1fr 165px;
-      align-items: start;
-      gap: clamp(0.55rem, 1.1vh, 0.85rem);
-      min-height: 0;
-    }
-
     .fit-board-shell {
       align-self: start;
       overflow: hidden;
       min-width: 0;
+      min-height: 0;
       padding: clamp(0.45rem, 1vh, 0.75rem);
     }
 
@@ -694,11 +700,12 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .board-grid {
-      width: min(100%, calc(100svh - 13.5rem));
-      max-width: 100%;
+      /* Square board: constrained by viewport height minus header+padding */
+      width: min(100%, calc(100svh - 8rem));
+      max-width: calc(100svh - 8rem);
       aspect-ratio: 1 / 1;
-      gap: clamp(0.16rem, 0.4vh, 0.28rem);
-      padding: clamp(0.25rem, 0.6vh, 0.45rem);
+      gap: clamp(0.12rem, 0.3vh, 0.2rem);
+      padding: clamp(0.2rem, 0.45vh, 0.32rem);
     }
 
     .board-cell {
@@ -747,7 +754,6 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       height: 100%;
       max-height: 100%;
       overflow: hidden;
-      flex-shrink: 0;
       gap: clamp(0.55rem, 1.1vh, 0.85rem);
       padding: clamp(0.65rem, 1.35vh, 0.95rem);
     }

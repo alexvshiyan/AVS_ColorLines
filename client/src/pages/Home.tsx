@@ -741,7 +741,6 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.13] mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
 
         <div className="fit-layout relative mx-auto w-full max-w-[1400px]">
-          <div className="fit-left">
             <header className="fit-header flex flex-row items-center gap-4 pt-1">
               <p className="fit-kicker inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
                 Classic Color Lines / Browser Cabinet
@@ -751,7 +750,6 @@ export default function Home() {
               </h1>
             </header>
 
-            <div className="fit-play-area">
               <section className="arcade-slab board-shell fit-board-shell p-2 sm:p-3" aria-label="Color Lines game board">
                 <div className="fit-board-head mb-3 flex items-center justify-between gap-3 px-1">
                   <div>
@@ -866,10 +864,8 @@ export default function Home() {
                   </form>
                 </div>
               </aside>
-            </div>
-          </div>
 
-          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5 lg:w-[280px] lg:min-w-[280px] lg:max-w-[280px] lg:flex-shrink-0 xl:w-[300px] xl:min-w-[300px] xl:max-w-[300px]">
+          <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
             <div className="fit-rail-content space-y-5">
               <div className="overflow-hidden border border-stone-700/80 bg-black/40 shadow-[8px_8px_0_rgba(0,0,0,.4)]">
                 <img src={STRIP_ASSET} alt="Colored game marbles on an arcade panel" className="fit-strip h-28 w-full object-cover" />
