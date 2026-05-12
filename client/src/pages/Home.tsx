@@ -813,10 +813,6 @@ export default function Home() {
 
           <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
             <div className="fit-rail-content space-y-5">
-              <div className="overflow-hidden border border-stone-700/80 bg-black/40 shadow-[8px_8px_0_rgba(0,0,0,.4)]">
-                <img src={STRIP_ASSET} alt="Colored game marbles on an arcade panel" className="fit-strip h-28 w-full object-cover" />
-              </div>
-
               <div className={`fit-message border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
                 <p className="fit-message-title mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
                 <p className="fit-message-body font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
