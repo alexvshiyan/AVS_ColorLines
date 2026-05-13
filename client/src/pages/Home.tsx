@@ -950,6 +950,12 @@ export default function Home() {
                     </button>
                 </div>
 
+                {/* Status message — moved here from right panel */}
+                <div className={`fit-message border bg-black/45 px-2.5 py-1.5 shadow-[6px_6px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
+                  <p className="fit-message-title mb-0.5 flex items-center gap-1.5 font-['Bebas_Neue'] text-base tracking-[0.08em]"><Zap size={12} /> {message.title}</p>
+                  <p className="fit-message-body font-['IBM_Plex_Sans'] text-[0.6rem] leading-[1.35] text-stone-200">{message.body}</p>
+                </div>
+
               </aside>
 
           {/* ── Score Qualification Pop-up ── */}
@@ -1021,11 +1027,6 @@ export default function Home() {
 
           <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
             <div className="fit-rail-content space-y-5">
-              <div className={`fit-message border bg-black/45 px-3 py-2 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
-                <p className="fit-message-title mb-0.5 flex items-center gap-1.5 font-['Bebas_Neue'] text-xl tracking-[0.08em]"><Zap size={14} /> {message.title}</p>
-                <p className="fit-message-body font-['IBM_Plex_Sans'] text-[0.68rem] leading-4 text-stone-200">{message.body}</p>
-              </div>
-
               <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>
                 <h2 className="fit-records-title mb-3 font-['Bebas_Neue'] text-4xl tracking-[0.08em] text-stone-50">Global Records</h2>
                 {leaderboardQuery.isLoading ? (
