@@ -184,3 +184,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Allow user to dismiss the banner (persisted in localStorage)
 - [x] Place banner in the game header area (compact, non-intrusive)
 - [x] Validate with build and checkpoint
+
+## iOS Splash Screen + Install Banner Relocation
+
+- [x] Generate iOS splash screen image (2048×2732px, dark arcade style matching game theme)
+- [x] Upload splash screen to static assets and add `<link rel="apple-touch-startup-image">` to `client/index.html`
+- [x] Add `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">` to index.html (was already present)
+- [x] Move InstallBanner from above fit-layout to the bottom of the middle column (fit-status-rail), below the status widget
+- [x] Validate with build, checkpoint, and GitHub push
