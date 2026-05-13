@@ -9,6 +9,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import { Bot, Pause, RotateCcw, Target, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
+import InstallBanner from "@/components/InstallBanner";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -884,6 +885,7 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,193,91,.13),transparent_28%),radial-gradient(circle_at_78%_62%,rgba(0,229,255,.11),transparent_24%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.13] mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
 
+        <InstallBanner />
         <div className="fit-layout relative mx-auto w-full max-w-[1400px]">
             <header className="fit-header flex flex-row items-center gap-4 pt-1">
               <p className="fit-kicker inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
