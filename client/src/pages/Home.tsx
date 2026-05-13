@@ -924,27 +924,27 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Action buttons — horizontal row */}
-                <div className="grid grid-cols-3 gap-1.5">
+                {/* Action buttons — vertical stack */}
+                <div className="flex flex-col gap-1.5">
                     <button
                       type="button"
                       onClick={handleSuggestMove}
-                      className="cabinet-button cabinet-button-cyan group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1"
+                      className="cabinet-button cabinet-button-cyan group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5"
                       disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
                     >
                       <Target size={13} className="transition-transform group-hover:scale-110 shrink-0" />
-                      Suggest
+                      Suggest Move
                     </button>
                     <button
                       type="button"
                       onClick={handleToggleDemo}
-                      className={`cabinet-button group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                      className={`cabinet-button group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
                       disabled={gameOver && !isDemoRunning}
                     >
                       {isDemoRunning ? <Pause size={13} className="shrink-0" /> : <Bot size={13} className="transition-transform group-hover:rotate-6 shrink-0" />}
-                      {isDemoRunning ? "Stop" : "Demo"}
+                      {isDemoRunning ? "Stop Demo" : "Demo"}
                     </button>
-                    <button type="button" onClick={resetGame} className="cabinet-button group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1">
+                    <button type="button" onClick={resetGame} className="cabinet-button group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5">
                       <RotateCcw size={13} className="transition-transform group-hover:-rotate-45 shrink-0" />
                       New Game
                     </button>
@@ -1038,14 +1038,20 @@ export default function Home() {
                   <ol className="leaderboard-list">
                     {leaderboardRecords.map((record, index) => (
                       <li key={record.id} className="leaderboard-row">
-                        <span className="leaderboard-rank">#{index + 1}</span>
-                        <span className="leaderboard-name">{record.playerName}</span>
-                        <span className="leaderboard-score">{record.score}</span>
-                        <span className="leaderboard-meta">
-                          <span>{record.moves} moves</span>
+                        {/* Top line: rank + name + score */}
+                        <div className="flex items-baseline gap-1.5 min-w-0">
+                          <span className="leaderboard-rank shrink-0">#{index + 1}</span>
+                          <span className="leaderboard-name truncate flex-1">{record.playerName}</span>
+                          <span className="leaderboard-score shrink-0">{record.score}</span>
+                        </div>
+                        {/* Bottom line: moves · date · location */}
+                        <div className="leaderboard-meta">
+                          <span>{record.moves}mv</span>
+                          <span>·</span>
                           <span>{formatRecordDateTime(record.createdAt)}</span>
-                          <span>{record.location || "Unknown location"}</span>
-                        </span>
+                          <span>·</span>
+                          <span className="truncate">{record.location || "Unknown"}</span>
+                        </div>
                       </li>
                     ))}
                   </ol>
