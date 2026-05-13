@@ -246,6 +246,10 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const stored = window.localStorage.getItem("colorlines-sound");
+    return stored === null ? true : stored === "true";
+  });
   const [gameOver, setGameOver] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
@@ -393,6 +397,7 @@ export default function Home() {
 
   /** Play a short arcade fanfare: rising 4-note arpeggio followed by a triumphant chord swell. */
   const playFanfare = useCallback(() => {
+    if (!soundEnabled) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
 
@@ -468,12 +473,13 @@ export default function Home() {
     shimmerGain.connect(masterGain);
     shimmer.start(chordStart);
     shimmer.stop(chordStart + 0.55);
-  }, []);
+  }, [soundEnabled]);
 
   // Keep the ref in sync so the popup useEffect can call it without ordering issues
   playFanfareRef.current = playFanfare;
 
   const playBounceSound = useCallback((variant: "ready" | "hop" | "blocked" = "hop") => {
+    if (!soundEnabled) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
 
@@ -504,7 +510,7 @@ export default function Home() {
     gain.connect(context.destination);
     oscillator.start(now);
     oscillator.stop(now + duration + 0.02);
-  }, []);
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (readyBounceTimerRef.current) {
@@ -1013,6 +1019,21 @@ export default function Home() {
 
                 {/* Install App Banner — bottom of middle column */}
                 <InstallBanner />
+
+                {/* Sound toggle — very bottom of middle column */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !soundEnabled;
+                    setSoundEnabled(next);
+                    window.localStorage.setItem("colorlines-sound", String(next));
+                  }}
+                  className="flex w-full items-center justify-between border border-stone-700/60 bg-black/30 px-2.5 py-1.5 font-['IBM_Plex_Sans'] text-[0.6rem] uppercase tracking-[0.22em] text-stone-400 transition-colors hover:border-amber-400/40 hover:text-amber-200"
+                  aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
+                >
+                  <span>{soundEnabled ? "Sound" : "Sound"}</span>
+                  <span className="text-base leading-none">{soundEnabled ? "🔊" : "🔇"}</span>
+                </button>
 
               </aside>
 
