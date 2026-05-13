@@ -6,7 +6,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Pause, RotateCcw, Sparkles, Target, Trophy, Zap } from "lucide-react";
+import { Bot, Pause, RotateCcw, Target, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 
@@ -921,6 +921,32 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* ── Action buttons moved here from right panel ── */}
+                <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSuggestMove}
+                      className="cabinet-button cabinet-button-cyan group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1"
+                      disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
+                    >
+                      <Target size={14} className="transition-transform group-hover:scale-110" />
+                      Suggest
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleToggleDemo}
+                      className={`cabinet-button group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                      disabled={gameOver && !isDemoRunning}
+                    >
+                      {isDemoRunning ? <Pause size={14} /> : <Bot size={14} className="transition-transform group-hover:rotate-6" />}
+                      {isDemoRunning ? "Stop" : "Demo"}
+                    </button>
+                    <button type="button" onClick={resetGame} className="cabinet-button group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1">
+                      <RotateCcw size={14} className="transition-transform group-hover:-rotate-45" />
+                      New
+                    </button>
+                </div>
+
               </aside>
 
           {/* ── Score Qualification Pop-up ── */}
@@ -992,9 +1018,9 @@ export default function Home() {
 
           <aside className="control-rail arcade-slab flex flex-col justify-between gap-5 p-4 sm:p-5">
             <div className="fit-rail-content space-y-5">
-              <div className={`fit-message border bg-black/45 p-4 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
-                <p className="fit-message-title mb-1 flex items-center gap-2 font-['Bebas_Neue'] text-3xl tracking-[0.08em]"><Zap size={18} /> {message.title}</p>
-                <p className="fit-message-body font-['IBM_Plex_Sans'] text-sm leading-6 text-stone-200">{message.body}</p>
+              <div className={`fit-message border bg-black/45 px-3 py-2 shadow-[8px_8px_0_rgba(0,0,0,.35)] ${messageToneClass}`}>
+                <p className="fit-message-title mb-0.5 flex items-center gap-1.5 font-['Bebas_Neue'] text-xl tracking-[0.08em]"><Zap size={14} /> {message.title}</p>
+                <p className="fit-message-body font-['IBM_Plex_Sans'] text-[0.68rem] leading-4 text-stone-200">{message.body}</p>
               </div>
 
               <div className="rule-card" style={{ backgroundImage: `linear-gradient(rgba(7,7,7,.78), rgba(7,7,7,.9)), url(${PANEL_ASSET})` }}>
@@ -1024,36 +1050,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={handleSuggestMove}
-                  className="cabinet-button cabinet-button-cyan group"
-                  disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
-                >
-                  <Target size={18} className="transition-transform group-hover:scale-110" />
-                  Suggest Move
-                </button>
-                <button
-                  type="button"
-                  onClick={handleToggleDemo}
-                  className={`cabinet-button group ${isDemoRunning ? "cabinet-button-stop" : ""}`}
-                  disabled={gameOver && !isDemoRunning}
-                >
-                  {isDemoRunning ? <Pause size={18} /> : <Bot size={18} className="transition-transform group-hover:rotate-6" />}
-                  {isDemoRunning ? "Stop Demo" : "Demo"}
-                </button>
-              </div>
-              <button type="button" onClick={resetGame} className="cabinet-button group">
-                <RotateCcw size={18} className="transition-transform group-hover:-rotate-45" />
-                New Game
-              </button>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="mini-stat"><Trophy size={16} /> Best {bestScore}</div>
-                <div className="mini-stat"><Sparkles size={16} /> Lines ≥ {LINE_LENGTH}</div>
-              </div>
-            </div>
+
           </aside>
         </div>
       </section>
