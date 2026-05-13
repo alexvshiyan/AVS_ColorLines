@@ -229,6 +229,13 @@ function hasClearedCell(cells: Position[], row: number, col: number) {
   return cells.some((cell) => cell.row === row && cell.col === col);
 }
 
+/** Trigger haptic feedback on devices that support the Vibration API. */
+function vibrate(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+  }
+}
+
 export default function Home() {
   const initial = useMemo(() => buildInitialState(), []);
   const [board, setBoard] = useState<Cell[][]>(initial.board);
@@ -565,6 +572,7 @@ export default function Home() {
       if (cleared.length) {
         const gained = scoreForCleared(cleared.length);
         setClearingCells(cleared);
+        vibrate([50, 30, 80]);
         window.setTimeout(() => {
           const clearedBoard = removeCells(incomingBoard, cleared);
           setBoard(clearedBoard);
@@ -587,6 +595,7 @@ export default function Home() {
           const gained = scoreForCleared(postSpawnClears.length);
           setBoard(withNewBalls);
           setClearingCells(postSpawnClears);
+          vibrate([50, 30, 80]);
           window.setTimeout(() => {
             const clearedBoard = removeCells(withNewBalls, postSpawnClears);
             setBoard(clearedBoard);
@@ -646,6 +655,7 @@ export default function Home() {
       if (!path.length) {
         setPathPreview([]);
         playBounceSound("blocked");
+        vibrate(15);
         setMessage({
           tone: "blocked",
           title: "Path blocked",
@@ -663,6 +673,7 @@ export default function Home() {
       setBoard(boardWithoutSource);
       setMovingBall({ color, path, step: 0 });
       playBounceSound("hop");
+      vibrate(30);
 
       let step = 0;
       const animateStep = () => {

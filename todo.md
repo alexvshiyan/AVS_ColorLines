@@ -208,3 +208,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add compact sound toggle button (🔊/🔇) at the bottom of the middle column (fit-status-rail), below InstallBanner
 - [x] Persist toggle state to localStorage on change
 - [x] Validate with build, checkpoint, and GitHub push
+
+## Haptic Feedback (Vibration)
+
+- [x] Add `vibrate(pattern)` helper that calls `navigator.vibrate` only when supported and sound is not the only feedback channel
+- [x] Short pulse (30ms) on each marble move (hop step)
+- [x] Double pulse [50, 30, 80] on line clear
+- [x] Single short buzz (15ms) on blocked move
+- [x] Validate with build, checkpoint, and GitHub push
