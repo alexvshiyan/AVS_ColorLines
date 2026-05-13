@@ -192,3 +192,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">` to index.html (was already present)
 - [x] Move InstallBanner from above fit-layout to the bottom of the middle column (fit-status-rail), below the status widget
 - [x] Validate with build, checkpoint, and GitHub push
+
+## Mobile Audio Fix
+
+- [ ] Add a shared AudioContext singleton that is created and resumed on the first user gesture
+- [ ] Show a compact "🔊 Tap to enable sound" overlay on mobile devices (iOS/Android) on first load, dismissed by any tap
+- [ ] Ensure the overlay tap itself unlocks the AudioContext (resume + silent buffer trick for iOS)
+- [ ] Hide the overlay automatically if the user is on desktop (non-touch device)
+- [ ] Validate with build, checkpoint, and GitHub push
