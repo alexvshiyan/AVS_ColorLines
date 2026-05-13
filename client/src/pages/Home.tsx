@@ -1044,13 +1044,15 @@ export default function Home() {
                           <span className="leaderboard-name truncate flex-1">{record.playerName}</span>
                           <span className="leaderboard-score shrink-0">{record.score}</span>
                         </div>
-                        {/* Bottom line: moves · date · location */}
+                        {/* Line 2: moves · date */}
                         <div className="leaderboard-meta">
                           <span>{record.moves}mv</span>
                           <span>·</span>
                           <span>{formatRecordDateTime(record.createdAt)}</span>
-                          <span>·</span>
-                          <span className="truncate">{record.location || "Unknown"}</span>
+                        </div>
+                        {/* Line 3: location */}
+                        <div className="leaderboard-meta leaderboard-location">
+                          <span className="truncate">{record.location || "Unknown location"}</span>
                         </div>
                       </li>
                     ))}
