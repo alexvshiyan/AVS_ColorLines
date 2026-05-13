@@ -174,3 +174,13 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add PWA meta tags to `client/index.html`: theme-color, apple-mobile-web-app-capable, apple-touch-icon
 - [x] Register service worker in `client/src/main.tsx`
 - [x] Validate with build, checkpoint
+
+## Install App Banner
+
+- [x] Create `InstallBanner` component: handles Android `beforeinstallprompt` and iOS manual instructions
+- [x] On Android/Chrome: show "📲 Install App" button that triggers native install prompt
+- [x] On iOS/Safari: show "📲 Install: tap Share → Add to Home Screen" instructions
+- [x] Hide banner if already running as standalone PWA (window.matchMedia standalone)
+- [x] Allow user to dismiss the banner (persisted in localStorage)
+- [x] Place banner in the game header area (compact, non-intrusive)
+- [x] Validate with build and checkpoint
