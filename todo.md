@@ -195,8 +195,16 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 
 ## Mobile Audio Fix
 
-- [ ] Add a shared AudioContext singleton that is created and resumed on the first user gesture
-- [ ] Show a compact "🔊 Tap to enable sound" overlay on mobile devices (iOS/Android) on first load, dismissed by any tap
-- [ ] Ensure the overlay tap itself unlocks the AudioContext (resume + silent buffer trick for iOS)
-- [ ] Hide the overlay automatically if the user is on desktop (non-touch device)
-- [ ] Validate with build, checkpoint, and GitHub push
+- [x] Add a shared AudioContext singleton that is created and resumed on the first user gesture (existing code handles this; audio confirmed working on mobile)
+- [x] Show a compact "🔊 Tap to enable sound" overlay on mobile devices — NOT NEEDED, audio works without overlay
+- [x] Ensure the overlay tap itself unlocks the AudioContext — NOT NEEDED
+- [x] Hide the overlay automatically if the user is on desktop — NOT NEEDED
+- [x] Validate with build, checkpoint, and GitHub push (commit 7a02b16)
+
+## Sound Toggle
+
+- [x] Add `soundEnabled` state initialised from localStorage key `colorlines-sound`
+- [x] Gate all `playBounceSound` and `playFanfare` calls behind `soundEnabled`
+- [x] Add compact sound toggle button (🔊/🔇) at the bottom of the middle column (fit-status-rail), below InstallBanner
+- [x] Persist toggle state to localStorage on change
+- [x] Validate with build, checkpoint, and GitHub push
