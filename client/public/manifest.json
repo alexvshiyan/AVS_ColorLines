@@ -1,0 +1,26 @@
+{
+  "name": "Color Lines",
+  "short_name": "ColorLines",
+  "description": "Classic Color Lines puzzle game — align 5 marbles of the same color to clear the board.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12121a",
+  "theme_color": "#12121a",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "puzzle"],
+  "lang": "en"
+}

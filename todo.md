@@ -165,3 +165,12 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Sharpen marble edges (crisper border, more defined silhouette)
 - [x] Keep the glossy highlight and 3D shape intact
 - [x] Validate with build and checkpoint
+
+## PWA (Progressive Web App) Support
+
+- [x] Generate app icons (192x192 and 512x512 PNG) from the game's visual identity
+- [x] Create `client/public/manifest.json` with name, icons, theme color, display mode
+- [x] Create `client/public/sw.js` service worker for offline caching of game assets
+- [x] Add PWA meta tags to `client/index.html`: theme-color, apple-mobile-web-app-capable, apple-touch-icon
+- [x] Register service worker in `client/src/main.tsx`
+- [x] Validate with build, checkpoint
