@@ -149,3 +149,12 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add status widget at the bottom of middle column (fit-status-rail), below action buttons
 - [x] Ensure right panel now starts directly with Global Records heading
 - [x] Validate with build and checkpoint
+
+## Live Top-5 Notification During Game
+
+- [x] Compute `isInTop5` live: compare current score against 5th-place record score
+- [x] Turn score number yellow (bright amber-yellow) when `isInTop5 === true`
+- [x] Show `⚡ TOP 5` badge below the score number when `isInTop5 === true`
+- [x] Flash gold status message "TOP 5 TERRITORY" when score first crosses the top-5 threshold (3s then revert to normal message)
+- [x] Use gold border tone for the status widget during the flash
+- [x] Validate with build and checkpoint
