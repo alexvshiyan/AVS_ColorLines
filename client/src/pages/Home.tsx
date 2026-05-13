@@ -348,6 +348,48 @@ export default function Home() {
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
 
+  // Live top-5 detection: compare current score against the 5th-place record
+  const leaderboardRecordsForTop5 = leaderboardQuery.data ?? [];
+  const isInTop5 = useMemo(() => {
+    if (score === 0) return false;
+    const records = leaderboardRecordsForTop5;
+    if (records.length < 5) return true; // fewer than 5 records — any score qualifies
+    const fifthScore = records[4]?.score ?? 0;
+    return score > fifthScore;
+  }, [score, leaderboardRecordsForTop5]);
+
+  // Track whether we already fired the top-5 flash this game session
+  const top5FlashFiredRef = useRef(false);
+  const top5FlashTimerRef = useRef<number | null>(null);
+
+  // Fire the gold flash message once when score first enters top-5
+  useEffect(() => {
+    if (gameOver) return; // don't fire after game ends (popup handles that)
+    if (!isInTop5) {
+      top5FlashFiredRef.current = false; // reset if score drops below (e.g. new game)
+      return;
+    }
+    if (top5FlashFiredRef.current) return; // already fired this session
+    top5FlashFiredRef.current = true;
+
+    setMessage({
+      tone: "clear" as MessageTone,
+      title: "⚡ TOP 5 TERRITORY",
+      body: "Your score has entered the global top 5. Keep the chain alive!",
+    });
+
+    // Revert to a neutral status message after 3 seconds
+    if (top5FlashTimerRef.current) window.clearTimeout(top5FlashTimerRef.current);
+    top5FlashTimerRef.current = window.setTimeout(() => {
+      setMessage((prev) =>
+        prev.title === "⚡ TOP 5 TERRITORY"
+          ? { tone: "move", title: "Top 5 active", body: "Score is in global top 5. Keep building lines." }
+          : prev
+      );
+    }, 3000);
+  }, [isInTop5, gameOver]);
+
+
   /** Play a short arcade fanfare: rising 4-note arpeggio followed by a triumphant chord swell. */
   const playFanfare = useCallback(() => {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -819,13 +861,19 @@ export default function Home() {
   const leaderboardRecords = leaderboardQuery.data ?? [];
   const canSubmitScore = gameOver && score > 0 && submittedScore !== score;
 
-  const messageToneClass = {
-    ready: "border-amber-300/25 text-amber-100",
-    move: "border-cyan-300/25 text-cyan-100",
-    clear: "border-green-300/35 text-green-100",
-    blocked: "border-red-300/35 text-red-100",
-    over: "border-magenta-300/35 text-magenta-100",
-  }[message.tone];
+  const messageToneClass = (() => {
+    // Gold override when the TOP 5 flash is active
+    if (message.title === "⚡ TOP 5 TERRITORY" || (isInTop5 && !gameOver && message.title === "Top 5 active")) {
+      return "border-yellow-300/60 text-yellow-100 bg-yellow-900/20";
+    }
+    return {
+      ready: "border-amber-300/25 text-amber-100",
+      move: "border-cyan-300/25 text-cyan-100",
+      clear: "border-green-300/35 text-green-100",
+      blocked: "border-red-300/35 text-red-100",
+      over: "border-magenta-300/35 text-magenta-100",
+    }[message.tone];
+  })();
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#090909] text-stone-100">
@@ -896,7 +944,13 @@ export default function Home() {
                 {/* Score section */}
                 <div className="arcade-slab fit-side-card px-2 py-1.5">
                   <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
-                  <div className="fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] text-amber-100 tabular-nums">{score}</div>
+                  <div className={`fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] tabular-nums transition-colors duration-500 ${isInTop5 ? 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]' : 'text-amber-100'}`}>{score}</div>
+                  {isInTop5 && (
+                    <div className="mt-0.5 flex items-center gap-1 font-['IBM_Plex_Sans'] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-yellow-300 animate-pulse">
+                      <Zap size={10} />
+                      <span>Top 5</span>
+                    </div>
+                  )}
                   <div className="mt-1.5 grid grid-cols-2 gap-1.5 font-['IBM_Plex_Sans'] text-[0.6rem] text-stone-300">
                     <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Moves<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{moves}</b></span>
                     <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Best<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{bestScore}</b></span>
