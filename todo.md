@@ -120,3 +120,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Add playFanfare() function using Web Audio API: rising arpeggio (4 notes) + final chord swell
 - [x] Call playFanfare() when the top-5 pop-up is shown (inside the useEffect that opens it)
 - [x] Validate with TypeScript check, build, checkpoint
+
+## Right Panel Compaction (4 fixes)
+
+- [x] Minimize height of status/message widget in right panel (reduce padding, font size)
+- [x] Minimize height of each record row (remove empty space, tighter padding)
+- [x] Move SUGGEST MOVE / DEMO / NEW GAME buttons to middle column (score/incoming section)
+- [x] Remove BEST / LINES ≥ 5 bottom bar entirely
