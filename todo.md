@@ -136,3 +136,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Reduce height of Capacity section (tighter padding)
 - [x] Reduce height of Buttons row (smaller min-height)
 - [x] Validate with TypeScript, build, checkpoint
+
+## Buttons Vertical + Compact Records
+
+- [x] Stack SUGGEST / DEMO / NEW GAME buttons vertically (flex-col) in middle column
+- [x] Show all record info (score, date, location) in compact 2-line rows, no extra gaps
+- [x] Validate with build and checkpoint
