@@ -142,3 +142,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Stack SUGGEST / DEMO / NEW GAME buttons vertically (flex-col) in middle column
 - [x] Show all record info (score, date, location) in compact 2-line rows, no extra gaps
 - [x] Validate with build and checkpoint
+
+## Move Status Widget to Middle Column
+
+- [x] Remove status widget (Cabinet Armed / Move Logged) from right panel (control-rail)
+- [x] Add status widget at the bottom of middle column (fit-status-rail), below action buttons
+- [x] Ensure right panel now starts directly with Global Records heading
+- [x] Validate with build and checkpoint

@@ -735,7 +735,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       min-width: 0;
       min-height: 0;
       height: 100%;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .fit-side-card,
