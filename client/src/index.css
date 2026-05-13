@@ -260,11 +260,13 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   .legend-dot {
     display: inline-block;
     border-radius: 999px;
+    /* Reduced glow (was 18px currentColor → 7px at 35% opacity) + sharper edge ring */
     box-shadow:
-      inset -7px -9px 13px rgba(0, 0, 0, 0.42),
-      inset 4px 4px 9px rgba(255, 255, 255, 0.55),
-      0 0 18px currentColor,
-      5px 6px 0 rgba(0, 0, 0, 0.32);
+      inset -7px -9px 13px rgba(0, 0, 0, 0.48),
+      inset 4px 4px 9px rgba(255, 255, 255, 0.52),
+      0 0 0 1px rgba(0, 0, 0, 0.55),
+      0 0 7px color-mix(in srgb, currentColor 35%, transparent),
+      3px 5px 8px rgba(0, 0, 0, 0.45);
   }
 
   .marble {

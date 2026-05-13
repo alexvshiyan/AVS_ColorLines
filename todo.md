@@ -158,3 +158,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Flash gold status message "TOP 5 TERRITORY" when score first crosses the top-5 threshold (3s then revert to normal message)
 - [x] Use gold border tone for the status widget during the flash
 - [x] Validate with build and checkpoint
+
+## Marble Appearance Tuning
+
+- [x] Reduce colored glow/shadow intensity on marbles (more subtle, less neon)
+- [x] Sharpen marble edges (crisper border, more defined silhouette)
+- [x] Keep the glossy highlight and 3D shape intact
+- [x] Validate with build and checkpoint
