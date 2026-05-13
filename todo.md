@@ -127,3 +127,12 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Minimize height of each record row (remove empty space, tighter padding)
 - [x] Move SUGGEST MOVE / DEMO / NEW GAME buttons to middle column (score/incoming section)
 - [x] Remove BEST / LINES ≥ 5 bottom bar entirely
+
+## Middle Column Compaction + Horizontal Buttons
+
+- [x] Restore horizontal button layout (SUGGEST / DEMO / NEW GAME side by side, full labels)
+- [x] Reduce height of Score section (smaller score font, tighter padding)
+- [x] Reduce height of Incoming section (smaller marble previews, tighter padding)
+- [x] Reduce height of Capacity section (tighter padding)
+- [x] Reduce height of Buttons row (smaller min-height)
+- [x] Validate with TypeScript, build, checkpoint

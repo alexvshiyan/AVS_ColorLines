@@ -893,57 +893,60 @@ export default function Home() {
               </section>
 
               <aside className="fit-status-rail grid gap-2">
-                <div className="arcade-slab fit-side-card px-2 py-3">
-                  <p className="font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Score</p>
-                  <div className="fit-score font-['Bebas_Neue'] text-7xl leading-none tracking-[0.06em] text-amber-100 tabular-nums">{score}</div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 font-['IBM_Plex_Sans'] text-xs text-stone-300">
-                    <span className="border border-stone-700/80 bg-black/35 p-2">Moves<br /><b className="font-['Bebas_Neue'] text-2xl text-stone-100">{moves}</b></span>
-                    <span className="border border-stone-700/80 bg-black/35 p-2">Best<br /><b className="font-['Bebas_Neue'] text-2xl text-stone-100">{bestScore}</b></span>
+                {/* Score section */}
+                <div className="arcade-slab fit-side-card px-2 py-1.5">
+                  <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                  <div className="fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] text-amber-100 tabular-nums">{score}</div>
+                  <div className="mt-1.5 grid grid-cols-2 gap-1.5 font-['IBM_Plex_Sans'] text-[0.6rem] text-stone-300">
+                    <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Moves<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{moves}</b></span>
+                    <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Best<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{bestScore}</b></span>
                   </div>
                 </div>
 
-                <div className="arcade-slab px-2 py-3">
-                  <p className="mb-2 font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-stone-400">Incoming</p>
-                  <div className="flex items-center gap-3">
+                {/* Incoming section */}
+                <div className="arcade-slab px-2 py-1.5">
+                  <p className="mb-1 font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Incoming</p>
+                  <div className="flex items-center gap-2">
                     {nextBalls.map((color, index) => (
                       <span key={`${color}-${index}`} className={`preview-marble marble-${color}`} />
                     ))}
                   </div>
                 </div>
 
-                <div className="arcade-slab px-2 py-3">
-                  <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.26em] text-stone-400">
+                {/* Capacity section */}
+                <div className="arcade-slab px-2 py-1.5">
+                  <div className="mb-1 flex items-center justify-between text-[0.55rem] uppercase tracking-[0.22em] text-stone-400">
                     <span>Capacity</span>
                     <span>{fillPercent}%</span>
                   </div>
-                  <div className="h-3 border border-stone-600 bg-black/55 p-0.5">
+                  <div className="h-2 border border-stone-600 bg-black/55 p-0.5">
                     <div className="h-full bg-gradient-to-r from-cyan-300 via-amber-200 to-red-500 transition-all duration-500" style={{ width: `${fillPercent}%` }} />
                   </div>
                 </div>
 
-                {/* ── Action buttons moved here from right panel ── */}
+                {/* Action buttons — horizontal row */}
                 <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
                       onClick={handleSuggestMove}
-                      className="cabinet-button cabinet-button-cyan group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1"
+                      className="cabinet-button cabinet-button-cyan group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1"
                       disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
                     >
-                      <Target size={14} className="transition-transform group-hover:scale-110" />
+                      <Target size={13} className="transition-transform group-hover:scale-110 shrink-0" />
                       Suggest
                     </button>
                     <button
                       type="button"
                       onClick={handleToggleDemo}
-                      className={`cabinet-button group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                      className={`cabinet-button group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
                       disabled={gameOver && !isDemoRunning}
                     >
-                      {isDemoRunning ? <Pause size={14} /> : <Bot size={14} className="transition-transform group-hover:rotate-6" />}
+                      {isDemoRunning ? <Pause size={13} className="shrink-0" /> : <Bot size={13} className="transition-transform group-hover:rotate-6 shrink-0" />}
                       {isDemoRunning ? "Stop" : "Demo"}
                     </button>
-                    <button type="button" onClick={resetGame} className="cabinet-button group flex-col gap-0.5 !text-[0.62rem] !min-h-[2.8rem] px-1">
-                      <RotateCcw size={14} className="transition-transform group-hover:-rotate-45" />
-                      New
+                    <button type="button" onClick={resetGame} className="cabinet-button group !text-[0.7rem] !min-h-[2.2rem] px-1 gap-1">
+                      <RotateCcw size={13} className="transition-transform group-hover:-rotate-45 shrink-0" />
+                      New Game
                     </button>
                 </div>
 

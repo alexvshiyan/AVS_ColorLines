@@ -660,6 +660,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     .fit-status-rail {
       grid-column: 2;
       grid-row: 2;
+      min-height: 0;
+      align-self: stretch;
     }
 
     /* control rail takes col 3, row 2 */
@@ -723,25 +725,27 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .fit-status-rail {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(0.45rem, 0.95vh, 0.75rem);
+      display: grid;
+      align-content: start;
+      gap: clamp(0.3rem, 0.6vh, 0.5rem);
       min-width: 0;
+      min-height: 0;
+      height: 100%;
       overflow: hidden;
     }
 
     .fit-side-card,
     .fit-status-rail > .arcade-slab {
-      padding: clamp(0.5rem, 1.1vh, 0.75rem);
+      padding: clamp(0.3rem, 0.6vh, 0.5rem);
     }
 
     .fit-score {
-      font-size: clamp(2.5rem, 5.5vh, 3.8rem);
+      font-size: clamp(1.8rem, 3.8vh, 2.6rem);
     }
 
     .preview-marble {
-      width: clamp(1.8rem, 4vh, 2.8rem);
-      height: clamp(1.8rem, 4vh, 2.8rem);
+      width: clamp(1.4rem, 3vh, 2.2rem);
+      height: clamp(1.4rem, 3vh, 2.2rem);
     }
 
     .leaderboard-input,
