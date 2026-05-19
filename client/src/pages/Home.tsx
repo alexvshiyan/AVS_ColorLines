@@ -253,6 +253,7 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
+  const [bestMoves, setBestMoves] = useState<number | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const stored = window.localStorage.getItem("colorlines-sound");
     return stored === null ? true : stored === "true";
@@ -297,6 +298,8 @@ export default function Home() {
   useEffect(() => {
     const stored = window.localStorage.getItem("colorlines-best-score");
     if (stored) setBestScore(Number(stored));
+    const storedBestMoves = window.localStorage.getItem("colorlines-best-moves");
+    if (storedBestMoves) setBestMoves(Number(storedBestMoves));
     const storedPlayerName = window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY);
     if (storedPlayerName) setPlayerName(storedPlayerName);
 
@@ -330,6 +333,15 @@ export default function Home() {
       window.localStorage.setItem("colorlines-best-score", String(score));
     }
   }, [score, bestScore]);
+
+  // Track best moves: only update when game is over and player made at least 1 move
+  useEffect(() => {
+    if (!gameOver || moves === 0) return;
+    if (bestMoves === null || moves < bestMoves) {
+      setBestMoves(moves);
+      window.localStorage.setItem("colorlines-best-moves", String(moves));
+    }
+  }, [gameOver, moves, bestMoves]);
 
   useEffect(() => {
     if (!selected || board[selected.row][selected.col]) return;
@@ -961,17 +973,31 @@ export default function Home() {
               <aside className="fit-status-rail grid gap-2">
                 {/* Score section */}
                 <div className="arcade-slab fit-side-card px-2 py-1.5">
-                  <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
-                  <div className={`fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] tabular-nums transition-colors duration-500 ${isInTop5 ? 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]' : 'text-amber-100'}`}>{score}</div>
-                  {isInTop5 && (
-                    <div className="mt-0.5 flex items-center gap-1 font-['IBM_Plex_Sans'] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-yellow-300 animate-pulse">
-                      <Zap size={10} />
-                      <span>Top 5</span>
+                  <div className="grid grid-cols-2 gap-x-2">
+                    {/* Left: Score + Moves */}
+                    <div>
+                      <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                      <div className={`fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] tabular-nums transition-colors duration-500 ${isInTop5 ? 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]' : 'text-amber-100'}`}>{score}</div>
+                      {isInTop5 && (
+                        <div className="mt-0.5 flex items-center gap-1 font-['IBM_Plex_Sans'] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-yellow-300 animate-pulse">
+                          <Zap size={10} />
+                          <span>Top 5</span>
+                        </div>
+                      )}
+                      <div className="mt-1 font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.22em] text-stone-400">
+                        Moves
+                        <span className="ml-1.5 font-['Bebas_Neue'] text-sm tracking-[0.06em] text-stone-200">{moves}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="mt-1.5 grid grid-cols-2 gap-1.5 font-['IBM_Plex_Sans'] text-[0.6rem] text-stone-300">
-                    <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Moves<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{moves}</b></span>
-                    <span className="border border-stone-700/80 bg-black/35 px-1.5 py-1">Best<br /><b className="font-['Bebas_Neue'] text-lg text-stone-100">{bestScore}</b></span>
+                    {/* Right: Best Score + Best Moves */}
+                    <div className="border-l border-stone-700/60 pl-2">
+                      <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Best</p>
+                      <div className={`fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] tabular-nums text-amber-100`}>{bestScore}</div>
+                      <div className="mt-1 font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.22em] text-stone-400">
+                        Moves
+                        <span className="ml-1.5 font-['Bebas_Neue'] text-sm tracking-[0.06em] text-stone-200">{bestMoves ?? '—'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
