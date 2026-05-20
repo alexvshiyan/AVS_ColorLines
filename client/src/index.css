@@ -645,11 +645,12 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-layout {
       display: grid;
-      grid-template-columns: max-content 178px 230px;
-      grid-template-rows: auto 1fr;
+      /* Three real, non-overlapping cockpit tracks: board / controls / records. */
+      grid-template-columns: max-content clamp(13.25rem, 14vw, 14.5rem) clamp(14.5rem, 16vw, 16rem);
+      grid-template-rows: auto minmax(0, 1fr);
       justify-content: center;
       height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
-      column-gap: clamp(0.4rem, 0.7vw, 0.6rem);
+      column-gap: clamp(0.85rem, 1.2vw, 1.15rem);
       row-gap: clamp(0.3rem, 0.7vh, 0.55rem);
       overflow: hidden;
     }
@@ -744,10 +745,18 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
       display: grid;
       align-content: start;
       gap: clamp(0.3rem, 0.6vh, 0.5rem);
+      width: 100%;
       min-width: 0;
       min-height: 0;
-      height: 100%;
-      overflow: visible;
+      max-height: 100%;
+      box-sizing: border-box;
+      overflow-y: auto;
+      overflow-x: visible;
+    }
+
+    .fit-status-rail > * {
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .fit-side-card,
@@ -770,10 +779,13 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .control-rail {
+      width: 100%;
+      min-width: 0;
       min-height: 0;
-      height: 100%;
       max-height: 100%;
-      overflow: visible;
+      box-sizing: border-box;
+      overflow-y: auto;
+      overflow-x: visible;
       display: flex;
       flex-direction: column;
       gap: clamp(0.45rem, 0.9vh, 0.7rem);
@@ -844,8 +856,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     }
 
     .cabinet-button {
+      min-width: 0;
       min-height: clamp(2.25rem, 4.7vh, 2.9rem);
+      padding-inline: clamp(0.45rem, 0.8vw, 0.7rem);
       font-size: clamp(1.2rem, 2.65vh, 1.55rem);
+      white-space: nowrap;
       box-shadow:
         5px 5px 0 rgba(0, 0, 0, 0.55),
         inset 0 1px 0 rgba(255, 255, 255, 0.45);
