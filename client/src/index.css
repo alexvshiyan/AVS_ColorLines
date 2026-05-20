@@ -645,8 +645,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-layout {
       display: grid;
-      grid-template-columns: 1fr 178px 230px;
+      grid-template-columns: max-content 178px 230px;
       grid-template-rows: auto 1fr;
+      justify-content: center;
       height: calc(100svh - clamp(0.7rem, 1.6vh, 1.2rem));
       column-gap: clamp(0.4rem, 0.7vw, 0.6rem);
       row-gap: clamp(0.3rem, 0.7vh, 0.55rem);
@@ -697,6 +698,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .fit-board-shell {
       align-self: start;
+      justify-self: end;
+      width: fit-content;
       overflow: visible;
       min-width: 0;
       min-height: 0;
