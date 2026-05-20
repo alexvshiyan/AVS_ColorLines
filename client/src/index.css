@@ -348,9 +348,10 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     background: linear-gradient(180deg, rgba(255, 202, 91, 0.96), rgba(197, 113, 21, 0.96));
     color: #15100a;
     font-family: "Bebas Neue", sans-serif;
-    font-size: 1.55rem;
+    font-size: 1.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    border-radius: 4px;
     box-shadow:
       7px 7px 0 rgba(0, 0, 0, 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.45);
@@ -391,6 +392,12 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     border-color: rgba(255, 123, 123, 0.52);
     background: linear-gradient(180deg, rgba(255, 127, 91, 0.96), rgba(169, 38, 38, 0.96));
     color: #fff7ed;
+  }
+
+  .cabinet-button-undo {
+    border-color: rgba(167, 139, 250, 0.52);
+    background: linear-gradient(180deg, rgba(167, 139, 250, 0.94), rgba(109, 40, 217, 0.96));
+    color: #faf5ff;
   }
 
   .rule-card {
@@ -835,7 +842,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .cabinet-button {
       min-height: clamp(2.25rem, 4.7vh, 2.9rem);
-      font-size: clamp(1.1rem, 2.45vh, 1.4rem);
+      font-size: clamp(1.2rem, 2.65vh, 1.55rem);
       box-shadow:
         5px 5px 0 rgba(0, 0, 0, 0.55),
         inset 0 1px 0 rgba(255, 255, 255, 0.45);
@@ -1000,7 +1007,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
     .cabinet-button {
       min-height: clamp(2rem, 4.2vh, 2.45rem);
-      font-size: clamp(0.95rem, 2.05vh, 1.25rem);
+      font-size: clamp(1.05rem, 2.2vh, 1.35rem);
     }
   }
 
