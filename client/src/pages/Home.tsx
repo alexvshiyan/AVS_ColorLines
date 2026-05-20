@@ -6,7 +6,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Pause, RotateCcw, Target, Zap } from "lucide-react";
+import { Bot, Pause, RotateCcw, Target, Undo2, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 import InstallBanner from "@/components/InstallBanner";
@@ -254,6 +254,10 @@ export default function Home() {
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [bestMoves, setBestMoves] = useState<number | null>(null);
+  const MAX_UNDOS = 3;
+  const [undoUsed, setUndoUsed] = useState(0);
+  // Each entry stores { board, nextBalls, score, moves } before the move was made
+  const undoStackRef = useRef<Array<{ board: Cell[][]; nextBalls: ColorId[]; score: number; moves: number }>>([]);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const stored = window.localStorage.getItem("colorlines-sound");
     return stored === null ? true : stored === "true";
@@ -571,6 +575,8 @@ export default function Home() {
     setSubmittedScore(null);
     setShowScorePopup(false);
     setQualifyResult(null);
+    setUndoUsed(0);
+    undoStackRef.current = [];
     setMessage({
       tone: "ready",
       title: "New board online",
@@ -676,6 +682,9 @@ export default function Home() {
         return false;
       }
 
+      // Save snapshot for Undo (keep only last 1 entry — we allow undoing the most recent move)
+      undoStackRef.current = [{ board: cloneBoard(board), nextBalls: [...nextBalls], score, moves }];
+
       const boardWithoutSource = cloneBoard(board);
       boardWithoutSource[source.row][source.col] = null;
       setSelected(null);
@@ -708,7 +717,7 @@ export default function Home() {
       movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
       return true;
     },
-    [board, gameOver, movingBall, playBounceSound, resolveClears],
+    [board, gameOver, movingBall, moves, nextBalls, playBounceSound, resolveClears, score],
   );
 
   const moveSelectedBall = useCallback(
@@ -769,6 +778,27 @@ export default function Home() {
       body: "The line-builder algorithm will choose and play moves automatically. Press Stop Demo whenever you want to continue manually.",
     });
   }, [gameOver, isDemoRunning]);
+
+  const handleUndo = useCallback(() => {
+    if (undoUsed >= MAX_UNDOS) return;
+    if (!undoStackRef.current.length) return;
+    if (movingBall || clearingCells.length) return;
+    const snapshot = undoStackRef.current.pop()!;
+    setBoard(snapshot.board);
+    setNextBalls(snapshot.nextBalls);
+    setScore(snapshot.score);
+    setMoves(snapshot.moves);
+    setSelected(null);
+    setPathPreview([]);
+    setSuggestedMove(null);
+    setGameOver(false);
+    setUndoUsed((v) => v + 1);
+    setMessage({
+      tone: "move",
+      title: "Move undone",
+      body: `Board restored to previous state. Undo tokens remaining: ${MAX_UNDOS - undoUsed - 1}.`,
+    });
+  }, [clearingCells.length, movingBall, undoUsed]);
 
   useEffect(() => {
     if (demoTimerRef.current) {
@@ -916,11 +946,8 @@ export default function Home() {
 
         <div className="fit-layout relative mx-auto w-full max-w-[1400px]">
             <header className="fit-header flex flex-row items-center gap-4 pt-1">
-              <p className="fit-kicker inline-flex border border-amber-200/25 bg-black/50 px-3 py-1 font-['IBM_Plex_Sans'] text-[0.68rem] uppercase tracking-[0.38em] text-amber-100 shadow-[6px_6px_0_rgba(255,196,97,.12)] backdrop-blur">
-                Classic Color Lines / Browser Cabinet
-              </p>
               <h1 className="fit-title font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
-                Color Lines
+                Classic Color Lines
               </h1>
               <span className="ml-auto font-['IBM_Plex_Sans'] text-[0.58rem] text-amber-100/30 tracking-[0.12em] uppercase select-none hidden lg:block">
                 build {__BUILD_VERSION__}
@@ -930,7 +957,6 @@ export default function Home() {
               <section className="arcade-slab board-shell fit-board-shell p-2 sm:p-3" aria-label="Color Lines game board">
                 <div className="fit-board-head mb-3 flex items-center justify-between gap-3 px-1">
                   <div>
-                    <p className="font-['IBM_Plex_Sans'] text-[0.62rem] uppercase tracking-[0.32em] text-amber-100/70">Grid Matrix</p>
                     <p className="font-['Bebas_Neue'] text-2xl tracking-[0.08em] text-stone-100">9 × 9 Tactical Field</p>
                   </div>
                   <div className="hidden h-9 items-center gap-1 border border-stone-600/60 bg-black/35 px-3 sm:flex">
@@ -1027,7 +1053,7 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={handleSuggestMove}
-                      className="cabinet-button cabinet-button-cyan group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5"
+                      className="cabinet-button cabinet-button-cyan group !min-h-[2.2rem] w-full gap-1.5"
                       disabled={gameOver || Boolean(movingBall) || Boolean(clearingCells.length)}
                     >
                       <Target size={13} className="transition-transform group-hover:scale-110 shrink-0" />
@@ -1036,15 +1062,35 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={handleToggleDemo}
-                      className={`cabinet-button group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
+                      className={`cabinet-button group !min-h-[2.2rem] w-full gap-1.5 ${isDemoRunning ? "cabinet-button-stop" : ""}`}
                       disabled={gameOver && !isDemoRunning}
                     >
                       {isDemoRunning ? <Pause size={13} className="shrink-0" /> : <Bot size={13} className="transition-transform group-hover:rotate-6 shrink-0" />}
                       {isDemoRunning ? "Stop Demo" : "Demo"}
                     </button>
-                    <button type="button" onClick={resetGame} className="cabinet-button group !text-[0.7rem] !min-h-[2.2rem] w-full gap-1.5">
+                    <button type="button" onClick={resetGame} className="cabinet-button group !min-h-[2.2rem] w-full gap-1.5">
                       <RotateCcw size={13} className="transition-transform group-hover:-rotate-45 shrink-0" />
                       New Game
+                    </button>
+                    {/* Undo button with 3-token indicator */}
+                    <button
+                      type="button"
+                      onClick={handleUndo}
+                      disabled={undoUsed >= MAX_UNDOS || !undoStackRef.current.length || Boolean(movingBall) || Boolean(clearingCells.length)}
+                      className="cabinet-button cabinet-button-undo group !min-h-[2.2rem] w-full gap-1.5"
+                    >
+                      <Undo2 size={13} className="transition-transform group-hover:-scale-x-100 shrink-0" />
+                      Undo
+                      <span className="ml-auto flex gap-0.5">
+                        {Array.from({ length: MAX_UNDOS }).map((_, i) => (
+                          <span
+                            key={i}
+                            className={`inline-block h-2 w-2 rounded-full border border-current transition-opacity ${
+                              i < MAX_UNDOS - undoUsed ? "opacity-100" : "opacity-20"
+                            }`}
+                          />
+                        ))}
+                      </span>
                     </button>
                 </div>
 

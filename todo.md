@@ -216,3 +216,14 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Double pulse [50, 30, 80] on line clear
 - [x] Single short buzz (15ms) on blocked move
 - [x] Validate with build, checkpoint, and GitHub push
+
+## UI Improvements (3 tasks)
+
+- [x] Remove "Grid Matrix" label from board header, keep only "9 × 9 TACTICAL FIELD"
+- [x] Remove small subtitle text before "Color Lines" in the top header, keep only "CLASSIC COLOR LINES"
+- [x] Add Undo button: 3 uses per game, shown as 3 token/star icons that deplete on use
+- [x] Undo restores the board state from before the last move (board + nextBalls)
+- [x] Undo button disabled when no uses remain or no moves made yet
+- [x] Increase button text font size for better readability (keep button size/layout)
+- [x] Add slightly rounded corners (border-radius) to all game action buttons
+- [x] Validate with build, checkpoint, and GitHub push
