@@ -5,7 +5,7 @@ glossy marbles, hard offset shadows, compact arcade labels, and crisp mechanical
 When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Pause, RotateCcw, Target, Undo2, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
@@ -966,7 +966,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="board-grid grid grid-cols-9 rounded-none border border-amber-200/20 bg-black/55 shadow-inner">
+                <div className="board-grid relative grid grid-cols-9 overflow-visible rounded-none border border-amber-200/20 bg-black/55 shadow-inner">
                   {board.map((rowCells, row) =>
                     rowCells.map((color, col) => {
                       const selectedCell = samePosition(selected, { row, col });
@@ -977,7 +977,7 @@ export default function Home() {
                       const movingHere = Boolean(
                         movingBall && movingBall.path[movingBall.step]?.row === row && movingBall.path[movingBall.step]?.col === col,
                       );
-                      const visibleColor = movingHere && movingBall ? movingBall.color : color;
+                      const visibleColor = color;
                       return (
                         <button
                           key={`${row}-${col}`}
@@ -993,6 +993,21 @@ export default function Home() {
                       );
                     }),
                   )}
+                  {movingBall && (() => {
+                    const current = movingBall.path[movingBall.step] ?? movingBall.path[0];
+                    const cellPercent = 100 / BOARD_SIZE;
+                    const overlayStyle = {
+                      "--move-col": current.col,
+                      "--move-row": current.row,
+                      "--cell-size": `${cellPercent}%`,
+                    } as CSSProperties;
+
+                    return (
+                      <span className="moving-marble-layer" style={overlayStyle} aria-hidden="true">
+                        <span key={movingBall.step} className={`moving-marble marble marble-${movingBall.color}`} />
+                      </span>
+                    );
+                  })()}
                 </div>
               </section>
 
