@@ -2,8 +2,9 @@ import { COOKIE_NAME } from "@shared/const";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
-import { createLeaderboardRecord, listLeaderboardRecords, normalizeLeaderboardLimit, sanitizePlayerName, checkScoreQualifies } from "./leaderboard";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
+import { getAnalyticsOverview, getOnlinePlayersCount, listRecentSessions, trackAnalyticsEvent } from "./analytics";
+import { checkScoreQualifies, createLeaderboardRecord, listLeaderboardRecords, normalizeLeaderboardLimit, sanitizePlayerName } from "./leaderboard";
 
 /** Resolve city+country from a client IP using ip-api.com (free, no key required). */
 async function resolveLocationFromIp(ip: string): Promise<string> {
@@ -71,6 +72,38 @@ export const appRouter = router({
           location,
         });
       }),
+  }),
+
+  analytics: router({
+    track: publicProcedure
+      .input(
+        z.object({
+          sessionId: z.string().min(1).max(128),
+          eventName: z.string().min(1).max(120),
+          category: z.string().min(1).max(80).optional(),
+          page: z.string().min(1).max(200).optional(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
+          locale: z.string().max(64).optional(),
+          timezone: z.string().max(100).optional(),
+          viewport: z.string().max(64).optional(),
+          displayMode: z.string().max(64).optional(),
+          browser: z.string().max(100).optional(),
+          platform: z.string().max(100).optional(),
+        }),
+      )
+      .mutation(({ input, ctx }) =>
+        trackAnalyticsEvent(input, {
+          userId: ctx.user?.id ?? null,
+          req: ctx.req,
+        }),
+      ),
+    online: publicProcedure.query(() => getOnlinePlayersCount()),
+    overview: adminProcedure
+      .input(z.object({ days: z.number().int().min(1).max(90).optional() }).optional())
+      .query(({ input }) => getAnalyticsOverview(input?.days ?? 14)),
+    sessions: adminProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(100).optional() }).optional())
+      .query(({ input }) => listRecentSessions(input?.limit ?? 30)),
   }),
 
   // TODO: add feature routers here, e.g.

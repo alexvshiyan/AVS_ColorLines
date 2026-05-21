@@ -43,3 +43,62 @@ export const leaderboardRecords = mysqlTable(
 
 export type LeaderboardRecord = typeof leaderboardRecords.$inferSelect;
 export type InsertLeaderboardRecord = typeof leaderboardRecords.$inferInsert;
+
+export const analyticsEvents = mysqlTable(
+  "analytics_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sessionId: varchar("sessionId", { length: 64 }).notNull(),
+    userId: int("userId"),
+    eventName: varchar("eventName", { length: 80 }).notNull(),
+    category: varchar("category", { length: 40 }).default("game").notNull(),
+    page: varchar("page", { length: 120 }).default("/").notNull(),
+    metadata: text("metadata"),
+    locale: varchar("locale", { length: 32 }),
+    timezone: varchar("timezone", { length: 64 }),
+    viewport: varchar("viewport", { length: 32 }),
+    displayMode: varchar("displayMode", { length: 32 }),
+    userAgent: text("userAgent"),
+    browser: varchar("browser", { length: 80 }),
+    platform: varchar("platform", { length: 80 }),
+    location: varchar("location", { length: 80 }).default("Unknown").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    eventNameIdx: index("analytics_events_event_name_idx").on(table.eventName),
+    sessionIdx: index("analytics_events_session_idx").on(table.sessionId),
+    userIdx: index("analytics_events_user_idx").on(table.userId),
+    createdAtIdx: index("analytics_events_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type InsertAnalyticsEvent = typeof analyticsEvents.$inferInsert;
+
+export const playerSessions = mysqlTable(
+  "player_sessions",
+  {
+    sessionId: varchar("sessionId", { length: 64 }).primaryKey(),
+    userId: int("userId"),
+    eventCount: int("eventCount").default(0).notNull(),
+    lastEventName: varchar("lastEventName", { length: 80 }),
+    locale: varchar("locale", { length: 32 }),
+    timezone: varchar("timezone", { length: 64 }),
+    viewport: varchar("viewport", { length: 32 }),
+    displayMode: varchar("displayMode", { length: 32 }),
+    userAgent: text("userAgent"),
+    browser: varchar("browser", { length: 80 }),
+    platform: varchar("platform", { length: 80 }),
+    location: varchar("location", { length: 80 }).default("Unknown").notNull(),
+    startedAt: timestamp("startedAt").defaultNow().notNull(),
+    lastSeenAt: timestamp("lastSeenAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    lastSeenAtIdx: index("player_sessions_last_seen_at_idx").on(table.lastSeenAt),
+    userIdx: index("player_sessions_user_idx").on(table.userId),
+    locationIdx: index("player_sessions_location_idx").on(table.location),
+  }),
+);
+
+export type PlayerSession = typeof playerSessions.$inferSelect;
+export type InsertPlayerSession = typeof playerSessions.$inferInsert;

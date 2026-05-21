@@ -6,10 +6,11 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
 import { type CSSProperties, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Eye, EyeOff, Pause, RotateCcw, Target, Undo2, Zap } from "lucide-react";
+import { Bot, Eye, EyeOff, Pause, RotateCcw, Share2, Target, Undo2, Users, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 import InstallBanner from "@/components/InstallBanner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -330,6 +331,7 @@ export default function Home() {
   const [showScorePopup, setShowScorePopup] = useState(false);
   const [qualifyResult, setQualifyResult] = useState<{ qualifies: boolean; rank: number; totalRecords: number } | null>(null);
   const trpcUtils = trpc.useUtils();
+  const { onlinePlayers, track } = useAnalytics();
   const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
   const submitScoreMutation = trpc.leaderboard.submit.useMutation({
     onSuccess: () => {
@@ -407,6 +409,7 @@ export default function Home() {
     if (!qualifiesQuery.data) return;
     setQualifyResult(qualifiesQuery.data);
     if (qualifiesQuery.data.qualifies && submittedScore !== score) {
+      track("record_popup_shown", { score, moves, rank: qualifiesQuery.data.rank }, "leaderboard");
       // Small delay so the game-over message settles first, then show popup + fanfare
       const t = window.setTimeout(() => {
         setShowScorePopup(true);
@@ -414,7 +417,7 @@ export default function Home() {
       }, 600);
       return () => window.clearTimeout(t);
     }
-  }, [qualifiesQuery.data, score, submittedScore]);
+  }, [moves, qualifiesQuery.data, score, submittedScore, track]);
 
   useEffect(() => {
     if (score > bestScore) {
@@ -443,6 +446,7 @@ export default function Home() {
     if (hasAnyLegalMove(board)) return;
 
     setGameOver(true);
+    track("game_over", { score, moves, reason: "no_legal_move_detected" }, "game");
     setIsDemoRunning(false);
     if (demoTimerRef.current) {
       window.clearTimeout(demoTimerRef.current);
@@ -456,7 +460,7 @@ export default function Home() {
       title: "GAME OVER",
       body: "No legal move can be made from the current board. You can now save this final score.",
     });
-  }, [board, clearingCells.length, gameOver, movingBall]);
+  }, [board, clearingCells.length, gameOver, movingBall, moves, score, track]);
 
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
@@ -642,6 +646,7 @@ export default function Home() {
   }, [clearingCells.length, gameOver, movingBall, playBounceSound, selected]);
 
   const resetGame = useCallback(() => {
+    track("new_game_clicked", { score, moves, wasGameOver: gameOver }, "controls");
     if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
     if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
     const fresh = buildInitialState();
@@ -668,13 +673,14 @@ export default function Home() {
       title: "New board online",
       body: "The line scanner is ready. Build a row, column, or diagonal chain of five matching marbles.",
     });
-  }, []);
+  }, [gameOver, moves, score, track]);
 
   const resolveClears = useCallback(
     (incomingBoard: Cell[][], afterMove: boolean) => {
       const cleared = detectLines(incomingBoard);
       if (cleared.length) {
         const gained = scoreForCleared(cleared.length);
+        track("line_cleared", { cleared: cleared.length, gained, afterMove }, "game");
         setClearingCells(cleared);
         vibrate([50, 30, 80]);
         window.setTimeout(() => {
@@ -700,6 +706,7 @@ export default function Home() {
         const freshPreviewPositions = pickRandomEmptyPositions(withNewBalls, freshNext.length);
         if (postSpawnClears.length) {
           const gained = scoreForCleared(postSpawnClears.length);
+          track("spawn_line_cleared", { cleared: postSpawnClears.length, gained }, "game");
           setBoard(withNewBalls);
           setClearingCells(postSpawnClears);
           vibrate([50, 30, 80]);
@@ -723,6 +730,7 @@ export default function Home() {
           const remaining = getEmptyCells(withNewBalls).length;
           if (!hasAnyLegalMove(withNewBalls)) {
             setGameOver(true);
+            track("game_over", { score, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
             setIsDemoRunning(false);
             if (demoTimerRef.current) {
               window.clearTimeout(demoTimerRef.current);
@@ -752,7 +760,7 @@ export default function Home() {
         setPreviewPositions(pickRandomEmptyPositions(incomingBoard, nextBalls.length));
       }
     },
-    [nextBalls, previewPositions],
+    [moves, nextBalls, previewPositions, score, track],
   );
 
   const executeMove = useCallback(
@@ -763,6 +771,7 @@ export default function Home() {
 
       const path = findPath(board, source, destination);
       if (!path.length) {
+        track("move_blocked", { source, destination, color }, "game");
         setPathPreview([]);
         playBounceSound("blocked");
         vibrate(15);
@@ -777,6 +786,7 @@ export default function Home() {
       // Save snapshot for Undo (keep only last 1 entry — we allow undoing the most recent move)
       undoStackRef.current = [{ board: cloneBoard(board), nextBalls: [...nextBalls], previewPositions: [...previewPositions], score, moves }];
 
+      track("move_executed", { source, destination, color, pathLength: path.length, moveNumber: moves + 1, demo: isDemoRunning }, "game");
       const boardWithoutSource = cloneBoard(board);
       boardWithoutSource[source.row][source.col] = null;
       setSelected(null);
@@ -809,7 +819,7 @@ export default function Home() {
       movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
       return true;
     },
-    [board, gameOver, movingBall, moves, nextBalls, playBounceSound, previewPositions, resolveClears, score],
+    [board, gameOver, isDemoRunning, movingBall, moves, nextBalls, playBounceSound, previewPositions, resolveClears, score, track],
   );
 
   const moveSelectedBall = useCallback(
@@ -823,7 +833,8 @@ export default function Home() {
   const handleSuggestMove = useCallback(() => {
     if (gameOver || movingBall || clearingCells.length) return;
     const recommendation = recommendColorLinesMove(board);
-    if (!recommendation) {
+      if (!recommendation) {
+      track("suggest_move_clicked", { result: "none", score, moves }, "controls");
       setSuggestedMove(null);
       setPathPreview([]);
       playBounceSound("blocked");
@@ -835,6 +846,7 @@ export default function Home() {
       return;
     }
 
+    track("suggest_move_clicked", { result: "found", score, moves, clearedCount: recommendation.clearedCount, pathLength: recommendation.path.length }, "controls");
     setIsDemoRunning(false);
     if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
     setSelected(recommendation.from);
@@ -845,10 +857,11 @@ export default function Home() {
       title: recommendation.clearedCount ? "Suggested clearing move" : "Suggested line-builder move",
       body: `${COLOR_LABELS[recommendation.color as ColorId]} ${String.fromCharCode(65 + recommendation.from.col)}${recommendation.from.row + 1} → ${String.fromCharCode(65 + recommendation.to.col)}${recommendation.to.row + 1}. This favors future five-in-line potential and open board control.`,
     });
-  }, [board, clearingCells.length, gameOver, movingBall, playBounceSound]);
+  }, [board, clearingCells.length, gameOver, movingBall, moves, playBounceSound, score, track]);
 
   const handleToggleDemo = useCallback(() => {
     if (isDemoRunning) {
+      track("demo_toggled", { enabled: false, score, moves }, "controls");
       setIsDemoRunning(false);
       if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
       setMessage({
@@ -860,6 +873,7 @@ export default function Home() {
     }
 
     if (gameOver) return;
+    track("demo_toggled", { enabled: true, score, moves }, "controls");
     setIsDemoRunning(true);
     setSelected(null);
     setPathPreview([]);
@@ -869,13 +883,14 @@ export default function Home() {
       title: "Demo running",
       body: "The line-builder algorithm will choose and play moves automatically. Press Stop Demo whenever you want to continue manually.",
     });
-  }, [gameOver, isDemoRunning]);
+  }, [gameOver, isDemoRunning, moves, score, track]);
 
   const handleUndo = useCallback(() => {
     if (undoUsed >= MAX_UNDOS) return;
     if (!undoStackRef.current.length) return;
     if (movingBall || clearingCells.length) return;
     const snapshot = undoStackRef.current.pop()!;
+    track("undo_clicked", { score, moves, undoUsed: undoUsed + 1 }, "controls");
     setBoard(snapshot.board);
     setNextBalls(snapshot.nextBalls);
     setPreviewPositions(snapshot.previewPositions);
@@ -891,7 +906,7 @@ export default function Home() {
       title: "Move undone",
       body: `Board restored to previous state. Undo tokens remaining: ${MAX_UNDOS - undoUsed - 1}.`,
     });
-  }, [clearingCells.length, movingBall, undoUsed]);
+  }, [clearingCells.length, moves, movingBall, score, track, undoUsed]);
 
   useEffect(() => {
     if (demoTimerRef.current) {
@@ -943,6 +958,7 @@ export default function Home() {
     const color = board[row][col];
 
     if (color) {
+      track("marble_selected", { row, col, color }, "game");
       setSelected({ row, col });
       setSuggestedMove(null);
       setPathPreview([]);
@@ -969,6 +985,7 @@ export default function Home() {
 
     if (selected) {
       setSuggestedMove(null);
+      track("destination_selected", { row, col }, "game");
       moveSelectedBall({ row, col });
     } else {
       playBounceSound("blocked");
@@ -1002,13 +1019,14 @@ export default function Home() {
       if (playerName.trim()) {
         window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
       }
+      track("score_submit_clicked", { score, moves, hasPlayerName: Boolean(playerName.trim()) }, "leaderboard");
       submitScoreMutation.mutate({
         playerName,
         score,
         moves,
       });
     },
-    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore],
+    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore, track],
   );
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
@@ -1028,9 +1046,35 @@ export default function Home() {
     setShowSpawnPreview((value) => {
       const next = !value;
       window.localStorage.setItem(SPAWN_PREVIEW_STORAGE_KEY, String(next));
+      track("spawn_preview_toggled", { enabled: next }, "controls");
       return next;
     });
-  }, []);
+  }, [track]);
+
+  const handleShareScore = useCallback(async () => {
+    const shareData = {
+      title: "Color Lines score",
+      text: `I scored ${score} points in Classic Color Lines after ${moves} moves. Can you beat it?`,
+      url: window.location.origin,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        track("share_score_completed", { score, moves, method: "web_share" }, "sharing");
+        return;
+      }
+      await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+      track("share_score_completed", { score, moves, method: "clipboard" }, "sharing");
+      setMessage({
+        tone: "clear",
+        title: "Share link copied",
+        body: "Your score line is copied to the clipboard. Send it to another pilot.",
+      });
+    } catch {
+      track("share_score_failed", { score, moves }, "sharing");
+    }
+  }, [moves, score, track]);
 
   const messageToneClass = (() => {
     // Gold override when the TOP 5 flash is active
@@ -1060,9 +1104,14 @@ export default function Home() {
               <h1 className="fit-title font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
                 Classic Color Lines
               </h1>
-              <span className="ml-auto font-['IBM_Plex_Sans'] text-[0.58rem] text-amber-100/30 tracking-[0.12em] uppercase select-none hidden lg:block">
-                build {__BUILD_VERSION__}
-              </span>
+              <div className="ml-auto hidden items-center gap-3 lg:flex">
+                <span className="flex items-center gap-1.5 border border-cyan-300/20 bg-cyan-950/20 px-2 py-1 font-['IBM_Plex_Sans'] text-[0.58rem] uppercase tracking-[0.16em] text-cyan-100/70">
+                  <Users size={12} /> Online {onlinePlayers ?? "—"}
+                </span>
+                <span className="font-['IBM_Plex_Sans'] text-[0.58rem] text-amber-100/30 tracking-[0.12em] uppercase select-none">
+                  build {__BUILD_VERSION__}
+                </span>
+              </div>
             </header>
 
               <section className="arcade-slab board-shell fit-board-shell p-2 sm:p-3" aria-label="Color Lines game board">
@@ -1250,6 +1299,7 @@ export default function Home() {
                     const next = !soundEnabled;
                     setSoundEnabled(next);
                     window.localStorage.setItem("colorlines-sound", String(next));
+                    track("sound_toggled", { enabled: next }, "controls");
                   }}
                   className="flex w-full items-center justify-between border border-stone-700/60 bg-black/30 px-2.5 py-1.5 font-['IBM_Plex_Sans'] text-[0.6rem] uppercase tracking-[0.22em] text-stone-400 transition-colors hover:border-amber-400/40 hover:text-amber-200"
                   aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
@@ -1317,8 +1367,18 @@ export default function Home() {
                   </button>
                   <button
                     type="button"
+                    className="leaderboard-save-button flex items-center justify-center gap-2 border-cyan-300/50 text-cyan-50"
+                    onClick={handleShareScore}
+                  >
+                    <Share2 size={14} /> Share Score
+                  </button>
+                  <button
+                    type="button"
                     className="font-['IBM_Plex_Sans'] text-[0.65rem] uppercase tracking-[0.28em] text-stone-500 hover:text-stone-300 transition-colors"
-                    onClick={() => setShowScorePopup(false)}
+                    onClick={() => {
+                      track("record_popup_skipped", { score, moves }, "leaderboard");
+                      setShowScorePopup(false);
+                    }}
                   >
                     Skip — don't save
                   </button>
