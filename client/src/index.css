@@ -412,6 +412,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
   .cabinet-button-undo {
     position: relative;
+    justify-content: center;
+    padding-inline: clamp(3.1rem, 13vw, 4.4rem);
     border-color: rgba(167, 139, 250, 0.52);
     background: linear-gradient(180deg, rgba(167, 139, 250, 0.94), rgba(109, 40, 217, 0.96));
     color: #faf5ff;
@@ -420,17 +422,26 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   .undo-button-icon {
     position: absolute;
     left: clamp(0.55rem, 1.5vw, 0.85rem);
+    top: 50%;
+    translate: 0 -50%;
   }
 
   .undo-button-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
     display: block;
-    width: 100%;
+    width: max-content;
     text-align: center;
+    pointer-events: none;
   }
 
   .undo-token-row {
     position: absolute;
     right: clamp(0.55rem, 1.5vw, 0.85rem);
+    top: 50%;
+    translate: 0 -50%;
   }
 
   .rule-card {
