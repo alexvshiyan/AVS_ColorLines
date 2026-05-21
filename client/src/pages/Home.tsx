@@ -1263,15 +1263,15 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 opacity-[0.13] mix-blend-screen [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
 
         <div className="fit-layout relative mx-auto w-full max-w-[1400px]">
-            <header className="fit-header flex flex-row items-center gap-4 pt-1">
-              <h1 className="fit-title font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
+            <header className="fit-header flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 sm:gap-x-4 lg:flex-nowrap">
+              <h1 className="fit-title min-w-0 truncate font-['Bebas_Neue'] text-3xl leading-none tracking-[0.055em] text-stone-50 sm:text-4xl lg:text-5xl">
                 Classic Color Lines
               </h1>
-              <div className="ml-auto hidden items-center gap-3 lg:flex">
-                <span className="flex items-center gap-1.5 border border-cyan-300/20 bg-cyan-950/20 px-2 py-1 font-['IBM_Plex_Sans'] text-[0.58rem] uppercase tracking-[0.16em] text-cyan-100/70">
+              <div className="flex shrink-0 items-center gap-2 sm:gap-3 lg:ml-auto">
+                <span className="flex items-center gap-1 border border-cyan-300/25 bg-cyan-950/30 px-1.5 py-1 font-['IBM_Plex_Sans'] text-[0.52rem] uppercase tracking-[0.12em] text-cyan-100/80 shadow-[2px_2px_0_#000] sm:gap-1.5 sm:px-2 sm:text-[0.58rem] sm:tracking-[0.16em]">
                   <Users size={12} /> Online {onlinePlayers ?? "—"}
                 </span>
-                <span className="font-['IBM_Plex_Sans'] text-[0.58rem] text-amber-100/30 tracking-[0.12em] uppercase select-none">
+                <span className="hidden font-['IBM_Plex_Sans'] text-[0.58rem] uppercase tracking-[0.12em] text-amber-100/30 select-none lg:inline">
                   build {__BUILD_VERSION__}
                 </span>
               </div>
