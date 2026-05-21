@@ -1094,9 +1094,9 @@ export default function Home() {
                       disabled={undoUsed >= MAX_UNDOS || !undoStackRef.current.length || Boolean(movingBall) || Boolean(clearingCells.length)}
                       className="cabinet-button cabinet-button-undo group !min-h-[2.2rem] w-full gap-1.5"
                     >
-                      <Undo2 size={13} className="transition-transform group-hover:-scale-x-100 shrink-0" />
-                      Undo
-                      <span className="ml-auto flex gap-0.5">
+                      <Undo2 size={13} className="undo-button-icon transition-transform group-hover:-scale-x-100 shrink-0" />
+                      <span className="undo-button-label">Undo</span>
+                      <span className="undo-token-row flex gap-0.5">
                         {Array.from({ length: MAX_UNDOS }).map((_, i) => (
                           <span
                             key={i}
