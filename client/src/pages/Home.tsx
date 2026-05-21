@@ -6,7 +6,7 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 */
 
 import { type CSSProperties, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Pause, RotateCcw, Target, Undo2, Zap } from "lucide-react";
+import { Bot, Eye, EyeOff, Pause, RotateCcw, Target, Undo2, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 import InstallBanner from "@/components/InstallBanner";
@@ -19,6 +19,7 @@ const MOVE_HOP_MS = 135;
 const SELECTED_BOUNCE_HALF_MS = 650;
 const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
 const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
+const SPAWN_PREVIEW_STORAGE_KEY = "colorlines-show-preview";
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -97,18 +98,56 @@ function getEmptyCells(board: Cell[][]): Position[] {
   return cells;
 }
 
-function placeRandomBalls(board: Cell[][], colors: ColorId[]) {
-  const nextBoard = cloneBoard(board);
-  const empties = getEmptyCells(nextBoard);
+function pickRandomEmptyPositions(board: Cell[][], count: number) {
+  const empties = getEmptyCells(board);
+  const positions: Position[] = [];
 
-  colors.forEach((color) => {
-    if (!empties.length) return;
+  for (let i = 0; i < count && empties.length; i += 1) {
     const index = Math.floor(Math.random() * empties.length);
     const [cell] = empties.splice(index, 1);
-    nextBoard[cell.row][cell.col] = color;
+    positions.push(cell);
+  }
+
+  return positions;
+}
+
+function resolveSpawnPositions(board: Cell[][], colors: ColorId[], plannedPositions: Position[]) {
+  const simulatedBoard = cloneBoard(board);
+  const positions: Position[] = [];
+
+  colors.forEach((color, index) => {
+    const planned = plannedPositions[index];
+    const target = planned && !simulatedBoard[planned.row][planned.col]
+      ? planned
+      : pickRandomEmptyPositions(simulatedBoard, 1)[0];
+
+    if (!target) return;
+    simulatedBoard[target.row][target.col] = color;
+    positions[index] = target;
+  });
+
+  return positions;
+}
+
+function placeBallsAtPositions(board: Cell[][], colors: ColorId[], positions: Position[]) {
+  const nextBoard = cloneBoard(board);
+
+  colors.forEach((color, index) => {
+    const planned = positions[index];
+    if (planned && !nextBoard[planned.row][planned.col]) {
+      nextBoard[planned.row][planned.col] = color;
+      return;
+    }
+
+    const fallback = pickRandomEmptyPositions(nextBoard, 1)[0];
+    if (fallback) nextBoard[fallback.row][fallback.col] = color;
   });
 
   return nextBoard;
+}
+
+function placeRandomBalls(board: Cell[][], colors: ColorId[]) {
+  return placeBallsAtPositions(board, colors, pickRandomEmptyPositions(board, colors.length));
 }
 
 function findPath(board: Cell[][], start: Position, end: Position): Position[] {
@@ -201,9 +240,11 @@ function removeCells(board: Cell[][], cells: Position[]) {
 
 function buildInitialState() {
   const board = placeRandomBalls(makeEmptyBoard(), Array.from({ length: STARTING_BALLS }, randomColor));
+  const nextBalls = randomNextBalls();
   return {
     board,
-    nextBalls: randomNextBalls(),
+    nextBalls,
+    previewPositions: pickRandomEmptyPositions(board, nextBalls.length),
   };
 }
 
@@ -240,6 +281,7 @@ export default function Home() {
   const initial = useMemo(() => buildInitialState(), []);
   const [board, setBoard] = useState<Cell[][]>(initial.board);
   const [nextBalls, setNextBalls] = useState<ColorId[]>(initial.nextBalls);
+  const [previewPositions, setPreviewPositions] = useState<Position[]>(initial.previewPositions);
   const [selected, setSelected] = useState<Position | null>(null);
   const [pathPreview, setPathPreview] = useState<Position[]>([]);
   const [suggestedMove, setSuggestedMove] = useState<ColorLinesMoveRecommendation | null>(null);
@@ -257,9 +299,13 @@ export default function Home() {
   const MAX_UNDOS = 3;
   const [undoUsed, setUndoUsed] = useState(0);
   // Each entry stores { board, nextBalls, score, moves } before the move was made
-  const undoStackRef = useRef<Array<{ board: Cell[][]; nextBalls: ColorId[]; score: number; moves: number }>>([]);
+  const undoStackRef = useRef<Array<{ board: Cell[][]; nextBalls: ColorId[]; previewPositions: Position[]; score: number; moves: number }>>([]);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const stored = window.localStorage.getItem("colorlines-sound");
+    return stored === null ? true : stored === "true";
+  });
+  const [showSpawnPreview, setShowSpawnPreview] = useState(() => {
+    const stored = window.localStorage.getItem(SPAWN_PREVIEW_STORAGE_KEY);
     return stored === null ? true : stored === "true";
   });
   const [gameOver, setGameOver] = useState(false);
@@ -562,6 +608,7 @@ export default function Home() {
     const fresh = buildInitialState();
     setBoard(fresh.board);
     setNextBalls(fresh.nextBalls);
+    setPreviewPositions(fresh.previewPositions);
     setSelected(null);
     setPathPreview([]);
     setSuggestedMove(null);
@@ -594,6 +641,7 @@ export default function Home() {
         window.setTimeout(() => {
           const clearedBoard = removeCells(incomingBoard, cleared);
           setBoard(clearedBoard);
+          setPreviewPositions(pickRandomEmptyPositions(clearedBoard, nextBalls.length));
           setClearingCells([]);
           setScore((value) => value + gained);
           setMessage({
@@ -606,9 +654,11 @@ export default function Home() {
       }
 
       if (afterMove) {
-        const withNewBalls = placeRandomBalls(incomingBoard, nextBalls);
+        const completedSpawnPositions = resolveSpawnPositions(incomingBoard, nextBalls, previewPositions);
+        const withNewBalls = placeBallsAtPositions(incomingBoard, nextBalls, completedSpawnPositions);
         const postSpawnClears = detectLines(withNewBalls);
         const freshNext = randomNextBalls();
+        const freshPreviewPositions = pickRandomEmptyPositions(withNewBalls, freshNext.length);
         if (postSpawnClears.length) {
           const gained = scoreForCleared(postSpawnClears.length);
           setBoard(withNewBalls);
@@ -620,6 +670,7 @@ export default function Home() {
             setClearingCells([]);
             setScore((value) => value + gained);
             setNextBalls(freshNext);
+            setPreviewPositions(pickRandomEmptyPositions(clearedBoard, freshNext.length));
             setMessage({
               tone: "clear",
               title: "Spawn line cleared",
@@ -629,6 +680,7 @@ export default function Home() {
         } else {
           setBoard(withNewBalls);
           setNextBalls(freshNext);
+          setPreviewPositions(freshPreviewPositions);
           const remaining = getEmptyCells(withNewBalls).length;
           if (!hasAnyLegalMove(withNewBalls)) {
             setGameOver(true);
@@ -658,9 +710,10 @@ export default function Home() {
         }
       } else {
         setBoard(incomingBoard);
+        setPreviewPositions(pickRandomEmptyPositions(incomingBoard, nextBalls.length));
       }
     },
-    [nextBalls],
+    [nextBalls, previewPositions],
   );
 
   const executeMove = useCallback(
@@ -683,7 +736,7 @@ export default function Home() {
       }
 
       // Save snapshot for Undo (keep only last 1 entry — we allow undoing the most recent move)
-      undoStackRef.current = [{ board: cloneBoard(board), nextBalls: [...nextBalls], score, moves }];
+      undoStackRef.current = [{ board: cloneBoard(board), nextBalls: [...nextBalls], previewPositions: [...previewPositions], score, moves }];
 
       const boardWithoutSource = cloneBoard(board);
       boardWithoutSource[source.row][source.col] = null;
@@ -717,7 +770,7 @@ export default function Home() {
       movementTimerRef.current = window.setTimeout(animateStep, MOVE_HOP_MS);
       return true;
     },
-    [board, gameOver, movingBall, moves, nextBalls, playBounceSound, resolveClears, score],
+    [board, gameOver, movingBall, moves, nextBalls, playBounceSound, previewPositions, resolveClears, score],
   );
 
   const moveSelectedBall = useCallback(
@@ -786,6 +839,7 @@ export default function Home() {
     const snapshot = undoStackRef.current.pop()!;
     setBoard(snapshot.board);
     setNextBalls(snapshot.nextBalls);
+    setPreviewPositions(snapshot.previewPositions);
     setScore(snapshot.score);
     setMoves(snapshot.moves);
     setSelected(null);
@@ -920,6 +974,24 @@ export default function Home() {
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
   const canSubmitScore = gameOver && score > 0 && submittedScore !== score;
+  const previewByCell = useMemo(() => {
+    const cells = new Map<string, ColorId>();
+    previewPositions.forEach((position, index) => {
+      const color = nextBalls[index];
+      if (color && !board[position.row][position.col]) {
+        cells.set(keyOf(position), color);
+      }
+    });
+    return cells;
+  }, [board, nextBalls, previewPositions]);
+
+  const handleToggleSpawnPreview = useCallback(() => {
+    setShowSpawnPreview((value) => {
+      const next = !value;
+      window.localStorage.setItem(SPAWN_PREVIEW_STORAGE_KEY, String(next));
+      return next;
+    });
+  }, []);
 
   const messageToneClass = (() => {
     // Gold override when the TOP 5 flash is active
@@ -978,6 +1050,7 @@ export default function Home() {
                         movingBall && movingBall.path[movingBall.step]?.row === row && movingBall.path[movingBall.step]?.col === col,
                       );
                       const visibleColor = color;
+                      const previewColor = !visibleColor && showSpawnPreview ? previewByCell.get(keyOf({ row, col })) : undefined;
                       return (
                         <button
                           key={`${row}-${col}`}
@@ -989,6 +1062,7 @@ export default function Home() {
                         >
                           <span className="cell-coordinate">{String.fromCharCode(65 + col)}{row + 1}</span>
                           {visibleColor && <span className={`marble marble-${visibleColor}`} />}
+                          {!visibleColor && previewColor && <span className={`spawn-preview-dot marble-${previewColor}`} aria-hidden="true" />}
                         </button>
                       );
                     }),
@@ -1044,7 +1118,19 @@ export default function Home() {
 
                 {/* Incoming section */}
                 <div className="arcade-slab px-2 py-1.5">
-                  <p className="mb-1 font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Incoming</p>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Incoming</p>
+                    <button
+                      type="button"
+                      onClick={handleToggleSpawnPreview}
+                      className={`spawn-preview-toggle ${showSpawnPreview ? "spawn-preview-toggle-on" : ""}`}
+                      aria-pressed={showSpawnPreview}
+                      aria-label={showSpawnPreview ? "Hide incoming spawn preview dots" : "Show incoming spawn preview dots"}
+                    >
+                      {showSpawnPreview ? <Eye size={12} /> : <EyeOff size={12} />}
+                      <span>{showSpawnPreview ? "Dots" : "Off"}</span>
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2">
                     {nextBalls.map((color, index) => (
                       <span key={`${color}-${index}`} className={`preview-marble marble-${color}`} />
@@ -1241,6 +1327,9 @@ export default function Home() {
 
 
           </aside>
+          <footer className="game-footer-credit" aria-label="Site credit">
+            Made with Manus
+          </footer>
         </div>
       </section>
     </main>
