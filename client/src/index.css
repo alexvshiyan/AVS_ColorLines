@@ -257,7 +257,8 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
 
   .marble,
   .preview-marble,
-  .legend-dot {
+  .legend-dot,
+  .spawn-preview-dot {
     display: inline-block;
     border-radius: 999px;
     /* Reduced glow (was 18px currentColor → 7px at 35% opacity) + sharper edge ring */
@@ -312,6 +313,69 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   .preview-marble {
     width: 3.1rem;
     height: 3.1rem;
+  }
+
+  .spawn-preview-dot {
+    position: absolute;
+    inset: 34%;
+    z-index: 4;
+    opacity: 0.72;
+    pointer-events: none;
+    animation: spawnPreviewPulse 1.35s ease-in-out infinite alternate;
+    box-shadow:
+      inset -4px -5px 8px rgba(0, 0, 0, 0.46),
+      inset 2px 2px 5px rgba(255, 255, 255, 0.5),
+      0 0 0 1px rgba(0, 0, 0, 0.62),
+      0 0 10px color-mix(in srgb, currentColor 48%, transparent),
+      2px 3px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .spawn-preview-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid rgba(120, 113, 108, 0.62);
+    background: rgba(0, 0, 0, 0.34);
+    padding: 0.18rem 0.38rem;
+    color: rgba(214, 211, 209, 0.72);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.36);
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease,
+      background 140ms ease;
+  }
+
+  .spawn-preview-toggle:hover {
+    transform: translate(-1px, -1px);
+    border-color: rgba(103, 232, 249, 0.55);
+    color: rgba(207, 250, 254, 0.95);
+  }
+
+  .spawn-preview-toggle-on {
+    border-color: rgba(103, 232, 249, 0.64);
+    background: linear-gradient(180deg, rgba(8, 47, 73, 0.72), rgba(0, 0, 0, 0.38));
+    color: rgba(165, 243, 252, 0.96);
+  }
+
+  .game-footer-credit {
+    margin: 0.75rem auto 0;
+    width: max-content;
+    max-width: 100%;
+    border-top: 1px solid rgba(245, 222, 179, 0.16);
+    padding: 0.35rem 0.7rem 0;
+    color: rgba(214, 211, 209, 0.42);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.26em;
+    text-align: center;
+    text-transform: uppercase;
   }
 
   .legend-dot {
@@ -641,6 +705,19 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   to {
     transform: translateY(-7px) scale(1.08);
     filter: brightness(1.18);
+  }
+}
+
+@keyframes spawnPreviewPulse {
+  from {
+    opacity: 0.52;
+    transform: scale(0.88);
+    filter: saturate(0.95);
+  }
+  to {
+    opacity: 0.86;
+    transform: scale(1.04);
+    filter: saturate(1.18) brightness(1.08);
   }
 }
 
