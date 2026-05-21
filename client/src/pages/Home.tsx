@@ -49,6 +49,25 @@ type ColorId = "red" | "cyan" | "yellow" | "green" | "magenta" | "blue" | "orang
 type Cell = ColorId | null;
 type Position = { row: number; col: number };
 type MessageTone = "ready" | "move" | "clear" | "blocked" | "over";
+type ClearPhase = "idle" | "lock" | "sweep" | "pop";
+type ClearDirectionKey = "h" | "v" | "diag-lr" | "diag-rl";
+
+type ClearLineRun = {
+  cells: Position[];
+  direction: ClearDirectionKey;
+};
+
+type ClearEffectInfo = {
+  cells: Position[];
+  directionByCell: Record<string, ClearDirectionKey>;
+};
+
+type ScoreBurst = {
+  id: number;
+  row: number;
+  col: number;
+  label: string;
+};
 
 type GameMessage = {
   tone: MessageTone;
@@ -212,8 +231,14 @@ function keyOf(position: Position) {
   return `${position.row}-${position.col}`;
 }
 
-function detectLines(board: Cell[][]): Position[] {
-  const cleared = new Set<string>();
+function directionKeyFor(direction: Position): ClearDirectionKey {
+  if (direction.row === 0) return "h";
+  if (direction.col === 0) return "v";
+  return direction.col > 0 ? "diag-lr" : "diag-rl";
+}
+
+function detectLineRuns(board: Cell[][]): ClearLineRun[] {
+  const runs: ClearLineRun[] = [];
 
   for (let row = 0; row < BOARD_SIZE; row += 1) {
     for (let col = 0; col < BOARD_SIZE; col += 1) {
@@ -235,16 +260,35 @@ function detectLines(board: Cell[][]): Position[] {
         }
 
         if (run.length >= LINE_LENGTH) {
-          run.forEach((position) => cleared.add(keyOf(position)));
+          runs.push({ cells: run, direction: directionKeyFor(direction) });
         }
       });
     }
   }
 
-  return Array.from(cleared).map((key) => {
-    const [row, col] = key.split("-").map(Number);
-    return { row, col };
+  return runs;
+}
+
+function buildClearEffectInfo(board: Cell[][]): ClearEffectInfo {
+  const cleared = new Map<string, Position>();
+  const directionByCell: Record<string, ClearDirectionKey> = {};
+
+  detectLineRuns(board).forEach((run) => {
+    run.cells.forEach((position) => {
+      const key = keyOf(position);
+      cleared.set(key, position);
+      directionByCell[key] = directionByCell[key] ?? run.direction;
+    });
   });
+
+  return {
+    cells: Array.from(cleared.values()),
+    directionByCell,
+  };
+}
+
+function detectLines(board: Cell[][]): Position[] {
+  return buildClearEffectInfo(board).cells;
 }
 
 function removeCells(board: Cell[][], cells: Position[]) {
@@ -287,6 +331,19 @@ function hasClearedCell(cells: Position[], row: number, col: number) {
   return cells.some((cell) => cell.row === row && cell.col === col);
 }
 
+function centerOfCells(cells: Position[]) {
+  if (!cells.length) return { row: 0, col: 0 };
+  const total = cells.reduce(
+    (acc, cell) => ({ row: acc.row + cell.row, col: acc.col + cell.col }),
+    { row: 0, col: 0 },
+  );
+
+  return {
+    row: total.row / cells.length,
+    col: total.col / cells.length,
+  };
+}
+
 /** Trigger haptic feedback on devices that support the Vibration API. */
 function vibrate(pattern: number | number[]) {
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
@@ -304,11 +361,16 @@ export default function Home() {
   const [suggestedMove, setSuggestedMove] = useState<ColorLinesMoveRecommendation | null>(null);
   const [isDemoRunning, setIsDemoRunning] = useState(false);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
+  const [clearingPhase, setClearingPhase] = useState<ClearPhase>("idle");
+  const [clearingDirections, setClearingDirections] = useState<Record<string, ClearDirectionKey>>({});
+  const [scoreBursts, setScoreBursts] = useState<ScoreBurst[]>([]);
   const [movingBall, setMovingBall] = useState<MovingBall>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const movementTimerRef = useRef<number | null>(null);
   const readyBounceTimerRef = useRef<number | null>(null);
   const demoTimerRef = useRef<number | null>(null);
+  const clearTimerRefs = useRef<number[]>([]);
+  const scoreBurstIdRef = useRef(0);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -363,6 +425,20 @@ export default function Home() {
     body: "Select a marble, then choose an empty cell with a clear path. Align five or more to clear the line.",
   });
 
+  const clearLineEffectTimers = useCallback(() => {
+    clearTimerRefs.current.forEach((timerId) => window.clearTimeout(timerId));
+    clearTimerRefs.current = [];
+  }, []);
+
+  const scheduleClearEffectStep = useCallback((callback: () => void, delay: number) => {
+    const timerId = window.setTimeout(() => {
+      clearTimerRefs.current = clearTimerRefs.current.filter((id) => id !== timerId);
+      callback();
+    }, delay);
+    clearTimerRefs.current.push(timerId);
+    return timerId;
+  }, []);
+
   useEffect(() => {
     const suppressFloatingWatermark = () => removeFloatingManusWatermark();
 
@@ -398,8 +474,9 @@ export default function Home() {
       if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
       if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
       if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
+      clearLineEffectTimers();
     };
-  }, []);
+  }, [clearLineEffectTimers]);
 
   // Stable ref so the popup useEffect can call playFanfare without ordering constraints
   const playFanfareRef = useRef<(() => void) | null>(null);
@@ -590,6 +667,50 @@ export default function Home() {
   // Keep the ref in sync so the popup useEffect can call it without ordering issues
   playFanfareRef.current = playFanfare;
 
+  const playClearZap = useCallback(() => {
+    if (!soundEnabled) return;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const context = audioContextRef.current ?? new AudioContextClass();
+    audioContextRef.current = context;
+    if (context.state === "suspended") void context.resume();
+
+    const now = context.currentTime;
+    const masterGain = context.createGain();
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.11, now + 0.012);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    masterGain.connect(context.destination);
+
+    const laser = context.createOscillator();
+    const laserFilter = context.createBiquadFilter();
+    laser.type = "sawtooth";
+    laser.frequency.setValueAtTime(820, now);
+    laser.frequency.exponentialRampToValueAtTime(2280, now + 0.11);
+    laser.frequency.exponentialRampToValueAtTime(620, now + 0.22);
+    laserFilter.type = "bandpass";
+    laserFilter.frequency.setValueAtTime(1500, now);
+    laserFilter.Q.setValueAtTime(8.5, now);
+    laser.connect(laserFilter);
+    laserFilter.connect(masterGain);
+    laser.start(now);
+    laser.stop(now + 0.24);
+
+    const spark = context.createOscillator();
+    const sparkGain = context.createGain();
+    spark.type = "triangle";
+    spark.frequency.setValueAtTime(3140, now + 0.08);
+    spark.frequency.exponentialRampToValueAtTime(1780, now + 0.18);
+    sparkGain.gain.setValueAtTime(0.0001, now + 0.08);
+    sparkGain.gain.exponentialRampToValueAtTime(0.09, now + 0.095);
+    sparkGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+    spark.connect(sparkGain);
+    sparkGain.connect(context.destination);
+    spark.start(now + 0.08);
+    spark.stop(now + 0.22);
+  }, [soundEnabled]);
+
   const playBounceSound = useCallback((variant: "ready" | "hop" | "blocked" = "hop") => {
     if (!soundEnabled) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -649,6 +770,7 @@ export default function Home() {
     track("new_game_clicked", { score, moves, wasGameOver: gameOver }, "controls");
     if (movementTimerRef.current) window.clearTimeout(movementTimerRef.current);
     if (readyBounceTimerRef.current) window.clearInterval(readyBounceTimerRef.current);
+    clearLineEffectTimers();
     const fresh = buildInitialState();
     setBoard(fresh.board);
     setNextBalls(fresh.nextBalls);
@@ -659,6 +781,9 @@ export default function Home() {
     setIsDemoRunning(false);
     if (demoTimerRef.current) window.clearTimeout(demoTimerRef.current);
     setClearingCells([]);
+    setClearingPhase("idle");
+    setClearingDirections({});
+    setScoreBursts([]);
     setMovingBall(null);
     setScore(0);
     setMoves(0);
@@ -677,90 +802,123 @@ export default function Home() {
 
   const resolveClears = useCallback(
     (incomingBoard: Cell[][], afterMove: boolean) => {
-      const cleared = detectLines(incomingBoard);
-      if (cleared.length) {
-        const gained = scoreForCleared(cleared.length);
-        track("line_cleared", { cleared: cleared.length, gained, afterMove }, "game");
-        setClearingCells(cleared);
-        vibrate([50, 30, 80]);
-        window.setTimeout(() => {
-          const clearedBoard = removeCells(incomingBoard, cleared);
+      const completeMoveWithoutClear = (settledBoard: Cell[][]) => {
+        const remaining = getEmptyCells(settledBoard).length;
+        if (!hasAnyLegalMove(settledBoard)) {
+          setGameOver(true);
+          track("game_over", { score, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
+          setIsDemoRunning(false);
+          if (demoTimerRef.current) {
+            window.clearTimeout(demoTimerRef.current);
+            demoTimerRef.current = null;
+          }
+          setSelected(null);
+          setPathPreview([]);
+          setSuggestedMove(null);
+          setMessage({
+            tone: "over",
+            title: "GAME OVER",
+            body:
+              remaining === 0
+                ? "No empty cells remain, so no further move can be made. You can now save this final score."
+                : "No legal path remains for any marble. You can now save this final score.",
+          });
+        } else {
+          setMessage({
+            tone: "move",
+            title: "Move logged",
+            body: `${NEXT_BALLS} new marbles entered the grid. Empty cells remaining: ${remaining}.`,
+          });
+        }
+      };
+
+      const runClearAnimation = (
+        boardToClear: Cell[][],
+        clearInfo: ClearEffectInfo,
+        gained: number,
+        onComplete: (clearedBoard: Cell[][]) => void,
+      ) => {
+        const burstCenter = centerOfCells(clearInfo.cells);
+        const burst: ScoreBurst = {
+          id: scoreBurstIdRef.current + 1,
+          row: burstCenter.row,
+          col: burstCenter.col,
+          label: `+${gained}`,
+        };
+        scoreBurstIdRef.current = burst.id;
+
+        clearLineEffectTimers();
+        setClearingCells(clearInfo.cells);
+        setClearingDirections(clearInfo.directionByCell);
+        setClearingPhase("lock");
+        playClearZap();
+        vibrate([20, 30, 35]);
+
+        scheduleClearEffectStep(() => setClearingPhase("sweep"), 120);
+        scheduleClearEffectStep(() => {
+          setClearingPhase("pop");
+          setScoreBursts((bursts) => [...bursts, burst]);
+        }, 340);
+        scheduleClearEffectStep(() => {
+          const clearedBoard = removeCells(boardToClear, clearInfo.cells);
           setBoard(clearedBoard);
-          setPreviewPositions(pickRandomEmptyPositions(clearedBoard, nextBalls.length));
           setClearingCells([]);
+          setClearingPhase("idle");
+          setClearingDirections({});
           setScore((value) => value + gained);
+          onComplete(clearedBoard);
+        }, 520);
+        scheduleClearEffectStep(() => {
+          setScoreBursts((bursts) => bursts.filter((item) => item.id !== burst.id));
+        }, 1180);
+      };
+
+      const clearInfo = buildClearEffectInfo(incomingBoard);
+      if (clearInfo.cells.length) {
+        const gained = scoreForCleared(clearInfo.cells.length);
+        track("line_cleared", { cleared: clearInfo.cells.length, gained, afterMove }, "game");
+        runClearAnimation(incomingBoard, clearInfo, gained, (clearedBoard) => {
+          setPreviewPositions(pickRandomEmptyPositions(clearedBoard, nextBalls.length));
           setMessage({
             tone: "clear",
-            title: `${cleared.length} marbles cleared`,
-            body: `Line collapse registered. Score increased by ${gained}. Keep the cockpit open.`,
+            title: `${clearInfo.cells.length} marbles vaporized`,
+            body: `Laser sweep locked, popped the line, and banked ${gained} points. Keep the cockpit open.`,
           });
-        }, 220);
+        });
         return;
       }
 
       if (afterMove) {
         const completedSpawnPositions = resolveSpawnPositions(incomingBoard, nextBalls, previewPositions);
         const withNewBalls = placeBallsAtPositions(incomingBoard, nextBalls, completedSpawnPositions);
-        const postSpawnClears = detectLines(withNewBalls);
+        const postSpawnClearInfo = buildClearEffectInfo(withNewBalls);
         const freshNext = randomNextBalls();
         const freshPreviewPositions = pickRandomEmptyPositions(withNewBalls, freshNext.length);
-        if (postSpawnClears.length) {
-          const gained = scoreForCleared(postSpawnClears.length);
-          track("spawn_line_cleared", { cleared: postSpawnClears.length, gained }, "game");
+        if (postSpawnClearInfo.cells.length) {
+          const gained = scoreForCleared(postSpawnClearInfo.cells.length);
+          track("spawn_line_cleared", { cleared: postSpawnClearInfo.cells.length, gained }, "game");
           setBoard(withNewBalls);
-          setClearingCells(postSpawnClears);
-          vibrate([50, 30, 80]);
-          window.setTimeout(() => {
-            const clearedBoard = removeCells(withNewBalls, postSpawnClears);
-            setBoard(clearedBoard);
-            setClearingCells([]);
-            setScore((value) => value + gained);
+          runClearAnimation(withNewBalls, postSpawnClearInfo, gained, (clearedBoard) => {
             setNextBalls(freshNext);
             setPreviewPositions(pickRandomEmptyPositions(clearedBoard, freshNext.length));
             setMessage({
               tone: "clear",
-              title: "Spawn line cleared",
-              body: `${postSpawnClears.length} fresh marbles formed a line and were removed for ${gained} points.`,
+              title: "Spawn line vaporized",
+              body: `${postSpawnClearInfo.cells.length} fresh marbles triggered a laser sweep for ${gained} points.`,
             });
-          }, 220);
+          });
         } else {
           setBoard(withNewBalls);
           setNextBalls(freshNext);
           setPreviewPositions(freshPreviewPositions);
-          const remaining = getEmptyCells(withNewBalls).length;
-          if (!hasAnyLegalMove(withNewBalls)) {
-            setGameOver(true);
-            track("game_over", { score, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
-            setIsDemoRunning(false);
-            if (demoTimerRef.current) {
-              window.clearTimeout(demoTimerRef.current);
-              demoTimerRef.current = null;
-            }
-            setSelected(null);
-            setPathPreview([]);
-            setSuggestedMove(null);
-            setMessage({
-              tone: "over",
-              title: "GAME OVER",
-              body:
-                remaining === 0
-                  ? "No empty cells remain, so no further move can be made. You can now save this final score."
-                  : "No legal path remains for any marble. You can now save this final score.",
-            });
-          } else {
-            setMessage({
-              tone: "move",
-              title: "Move logged",
-              body: `${NEXT_BALLS} new marbles entered the grid. Empty cells remaining: ${remaining}.`,
-            });
-          }
+          completeMoveWithoutClear(withNewBalls);
         }
       } else {
         setBoard(incomingBoard);
         setPreviewPositions(pickRandomEmptyPositions(incomingBoard, nextBalls.length));
       }
     },
-    [moves, nextBalls, previewPositions, score, track],
+    [clearLineEffectTimers, moves, nextBalls, playClearZap, previewPositions, scheduleClearEffectStep, score, track],
   );
 
   const executeMove = useCallback(
@@ -891,9 +1049,14 @@ export default function Home() {
     if (movingBall || clearingCells.length) return;
     const snapshot = undoStackRef.current.pop()!;
     track("undo_clicked", { score, moves, undoUsed: undoUsed + 1 }, "controls");
+    clearLineEffectTimers();
     setBoard(snapshot.board);
     setNextBalls(snapshot.nextBalls);
     setPreviewPositions(snapshot.previewPositions);
+    setClearingCells([]);
+    setClearingPhase("idle");
+    setClearingDirections({});
+    setScoreBursts([]);
     setScore(snapshot.score);
     setMoves(snapshot.moves);
     setSelected(null);
@@ -906,7 +1069,7 @@ export default function Home() {
       title: "Move undone",
       body: `Board restored to previous state. Undo tokens remaining: ${MAX_UNDOS - undoUsed - 1}.`,
     });
-  }, [clearingCells.length, moves, movingBall, score, track, undoUsed]);
+  }, [clearLineEffectTimers, clearingCells.length, moves, movingBall, score, track, undoUsed]);
 
   useEffect(() => {
     if (demoTimerRef.current) {
@@ -1131,7 +1294,9 @@ export default function Home() {
                     rowCells.map((color, col) => {
                       const selectedCell = samePosition(selected, { row, col });
                       const inPath = pathPreview.some((cell) => cell.row === row && cell.col === col);
+                      const cellKey = keyOf({ row, col });
                       const isClearing = hasClearedCell(clearingCells, row, col);
+                      const clearingDirection = isClearing ? clearingDirections[cellKey] ?? "h" : null;
                       const isSuggestedFrom = Boolean(suggestedMove && suggestedMove.from.row === row && suggestedMove.from.col === col);
                       const isSuggestedTo = Boolean(suggestedMove && suggestedMove.to.row === row && suggestedMove.to.col === col);
                       const movingHere = Boolean(
@@ -1144,7 +1309,7 @@ export default function Home() {
                           key={`${row}-${col}`}
                           type="button"
                           aria-label={visibleColor ? `${COLOR_LABELS[visibleColor]} marble at row ${row + 1}, column ${col + 1}` : `Empty cell at row ${row + 1}, column ${col + 1}`}
-                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isSuggestedFrom ? "cell-suggest-source" : ""} ${isSuggestedTo ? "cell-suggest-target" : ""} ${isClearing ? "cell-clearing" : ""} ${movingHere ? "cell-moving" : ""}`}
+                          className={`board-cell ${selectedCell ? "cell-selected" : ""} ${inPath ? "cell-path" : ""} ${isSuggestedFrom ? "cell-suggest-source" : ""} ${isSuggestedTo ? "cell-suggest-target" : ""} ${isClearing ? `cell-clearing cell-clear-${clearingPhase} cell-sweep-${clearingDirection}` : ""} ${movingHere ? "cell-moving" : ""}`}
                           onClick={() => handleCellClick(row, col)}
                           onMouseEnter={() => handleCellEnter(row, col)}
                         >
@@ -1155,6 +1320,16 @@ export default function Home() {
                       );
                     }),
                   )}
+                  {scoreBursts.map((burst) => (
+                    <span
+                      key={burst.id}
+                      className="score-burst"
+                      style={{ left: `${((burst.col + 0.5) / BOARD_SIZE) * 100}%`, top: `${((burst.row + 0.5) / BOARD_SIZE) * 100}%` }}
+                      aria-hidden="true"
+                    >
+                      {burst.label}
+                    </span>
+                  ))}
                   {movingBall && (() => {
                     const current = movingBall.path[movingBall.step] ?? movingBall.path[0];
                     const cellPercent = 100 / BOARD_SIZE;
