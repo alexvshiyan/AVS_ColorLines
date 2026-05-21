@@ -20,6 +20,22 @@ const SELECTED_BOUNCE_HALF_MS = 650;
 const READY_BOUNCE_MS = SELECTED_BOUNCE_HALF_MS * 2;
 const PLAYER_NAME_STORAGE_KEY = "colorlines-player-name";
 const SPAWN_PREVIEW_STORAGE_KEY = "colorlines-show-preview";
+const MANUS_FLOATING_WATERMARK_TAG = "FOOTER-WATERMARK";
+
+function removeFloatingManusWatermark(root: ParentNode = document) {
+  const nodes = Array.from(root.querySelectorAll("*"));
+
+  nodes.forEach((node) => {
+    if (node.tagName === MANUS_FLOATING_WATERMARK_TAG) {
+      node.remove();
+      return;
+    }
+
+    if (node.shadowRoot) {
+      removeFloatingManusWatermark(node.shadowRoot);
+    }
+  });
+}
 
 const HERO_ASSET =
   "https://d2xsxph8kpxj0f.cloudfront.net/310419663032317964/gyEVyyMtKSRsneZFu6czsm/colorlines-hero-cockpit-4iTPRioxXeKNiaReAzQapt.webp";
@@ -344,6 +360,29 @@ export default function Home() {
     title: "Cabinet armed",
     body: "Select a marble, then choose an empty cell with a clear path. Align five or more to clear the line.",
   });
+
+  useEffect(() => {
+    const suppressFloatingWatermark = () => removeFloatingManusWatermark();
+
+    suppressFloatingWatermark();
+    const zeroDelaySweep = window.setTimeout(suppressFloatingWatermark, 0);
+    const delayedSweep = window.setTimeout(suppressFloatingWatermark, 750);
+    let sweepCount = 0;
+    const sweepInterval = window.setInterval(() => {
+      suppressFloatingWatermark();
+      sweepCount += 1;
+      if (sweepCount >= 20) window.clearInterval(sweepInterval);
+    }, 500);
+    const observer = new MutationObserver(suppressFloatingWatermark);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    return () => {
+      window.clearTimeout(zeroDelaySweep);
+      window.clearTimeout(delayedSweep);
+      window.clearInterval(sweepInterval);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("colorlines-best-score");
