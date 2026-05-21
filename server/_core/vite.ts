@@ -60,6 +60,13 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
+  // Prevent SPA fallback from serving index.html for missing JS/CSS assets.
+  // Without this guard, a stale asset hash causes the browser to receive
+  // text/html instead of application/javascript → black screen in production.
+  app.use("/assets", (_req, res) => {
+    res.status(404).send("Asset not found");
+  });
+
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
