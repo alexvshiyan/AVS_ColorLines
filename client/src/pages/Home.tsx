@@ -520,18 +520,24 @@ export default function Home() {
 
   // Open score popup when qualification result arrives
   useEffect(() => {
-    if (!qualifiesQuery.data) return;
+    // Only proceed if we have data and the query is not loading
+    if (!qualifiesQuery.data || qualifiesQuery.isLoading) return;
+    
     setQualifyResult(qualifiesQuery.data);
+    
+    // Check if score qualifies and hasn't been submitted yet
     if (qualifiesQuery.data.qualifies && submittedScore !== score) {
       track("record_popup_shown", { score, moves, rank: qualifiesQuery.data.rank }, "leaderboard");
+      
       // Small delay so the game-over message settles first, then show popup + fanfare
       const t = window.setTimeout(() => {
         setShowScorePopup(true);
         playFanfareRef.current?.();
       }, 600);
+      
       return () => window.clearTimeout(t);
     }
-  }, [moves, qualifiesQuery.data, score, submittedScore, track]);
+  }, [qualifiesQuery.data, qualifiesQuery.isLoading, moves, score, submittedScore, track]);
 
   useEffect(() => {
     if (score > bestScore) {
