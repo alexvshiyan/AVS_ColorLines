@@ -1485,6 +1485,36 @@ export default function Home() {
                   <p className="fit-message-body font-['IBM_Plex_Sans'] text-[0.6rem] leading-[1.35] text-stone-200">{message.body}</p>
                 </div>
 
+                {/* Share Score button — shown only on Game Over */}
+                {gameOver && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const text = `I scored ${score} in ${moves} moves on Classic Color Lines! 🎮 https://colorlines-gyevyymt.manus.space`;
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({ title: "Classic Color Lines", text });
+                          track("score_shared", { score, moves, method: "web_share" }, "game");
+                        } catch {
+                          // user cancelled — no-op
+                        }
+                      } else {
+                        try {
+                          await navigator.clipboard.writeText(text);
+                          track("score_shared", { score, moves, method: "clipboard" }, "game");
+                        } catch {
+                          // clipboard not available — no-op
+                        }
+                      }
+                    }}
+                    className="flex w-full items-center justify-center gap-2 border border-cyan-400/40 bg-cyan-950/40 px-2.5 py-2 font-['IBM_Plex_Sans'] text-[0.62rem] font-bold uppercase tracking-[0.22em] text-cyan-200 shadow-[3px_3px_0_rgba(0,0,0,.45)] transition-colors hover:border-cyan-300/70 hover:bg-cyan-900/50 hover:text-cyan-100"
+                    aria-label="Share your score"
+                  >
+                    <Share2 size={13} />
+                    Share Score
+                  </button>
+                )}
+
                 {/* Install App Banner — bottom of middle column */}
                 <InstallBanner />
 
