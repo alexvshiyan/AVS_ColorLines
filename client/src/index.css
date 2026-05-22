@@ -486,8 +486,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   }
 
   .marble-blue {
-    background: radial-gradient(circle at 32% 27%, #f0f3ff 0 8%, #657dff 13%, #1528b6 55%, #030b42 100%);
-    color: #4d63ff;
+    /* Lightened to stand out against dark board background */
+    background: radial-gradient(circle at 32% 27%, #eef2ff 0 8%, #7b9fff 13%, #2040cc 55%, #0a1560 100%);
+    color: #6b8fff;
   }
 
   .marble-orange {

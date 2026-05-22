@@ -241,3 +241,11 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Make spawn-preview dots brighter: increased opacity 0.72→0.92, boosted glow 48%→70%, stronger highlight inset
 - [x] Separate red and magenta/purple marble colors: red shifted to orange-red (#ff7043 mid, #c62828 core), magenta shifted to violet-purple (#cc66ff mid, #7b00d4 core)
 - [x] Validate with build, checkpoint, and GitHub push
+
+## Share Score + Blue Marble Brightness
+
+- [x] Add Share Score button on Game Over state using Web Share API (navigator.share); fallback to clipboard copy if not supported
+- [x] Share text: "I scored {score} in {moves} moves on Classic Color Lines! 🎮 https://colorlines-gyevyymt.manus.space"
+- [x] Show Share button only when gameOver === true, placed near the status message widget
+- [x] Lighten blue marble: shift mid-tone from #657dff → #7b9fff, core from #1528b6 → #2040cc, so it stands out against the dark board
+- [x] Validate with build, checkpoint, and GitHub push
