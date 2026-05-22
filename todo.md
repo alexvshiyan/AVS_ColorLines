@@ -227,3 +227,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Increase button text font size for better readability (keep button size/layout)
 - [x] Add slightly rounded corners (border-radius) to all game action buttons
 - [x] Validate with build, checkpoint, and GitHub push
+
+## Sound Volume Fix (Mobile + Desktop)
+
+- [x] Increase gain levels for all sound variants (ready bounce, hop, blocked) — currently too quiet (0.022–0.065)
+- [x] Ensure AudioContext is unlocked on first tap/click on mobile (resume on any user interaction, not just sound-triggering events)
+- [x] Add a global click/touchstart listener that resumes the AudioContext once on first interaction
+- [x] Validate with build, checkpoint, and GitHub push
