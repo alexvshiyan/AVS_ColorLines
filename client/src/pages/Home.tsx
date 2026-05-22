@@ -493,9 +493,13 @@ export default function Home() {
     };
     document.addEventListener("pointerdown", unlock, { once: true, passive: true });
     document.addEventListener("touchstart", unlock, { once: true, passive: true });
+    document.addEventListener("click", unlock, { once: true, passive: true });
+    window.addEventListener("focus", unlock, { once: true, passive: true });
     return () => {
       document.removeEventListener("pointerdown", unlock);
       document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+      window.removeEventListener("focus", unlock);
     };
   }, []);
 
