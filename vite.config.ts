@@ -173,6 +173,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Use fixed filenames (no content hash) so index.html always references
+        // the same asset path regardless of which machine runs the build.
+        // This prevents the black screen caused by hash mismatch between
+        // local build and Manus production build environments.
+        entryFileNames: "assets/index.js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name][extname]",
+      },
+    },
   },
   server: {
     host: true,
