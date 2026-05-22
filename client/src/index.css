@@ -394,15 +394,15 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     position: absolute;
     inset: 34%;
     z-index: 4;
-    opacity: 0.92;
+    opacity: 1;
     pointer-events: none;
     animation: spawnPreviewPulse 1.35s ease-in-out infinite alternate;
+    /* Bright, saturated colors matching the marble mid-tones — no shadow/darkening */
     box-shadow:
-      inset -4px -5px 8px rgba(0, 0, 0, 0.38),
-      inset 2px 2px 5px rgba(255, 255, 255, 0.65),
-      0 0 0 1px rgba(0, 0, 0, 0.55),
-      0 0 12px color-mix(in srgb, currentColor 70%, transparent),
-      2px 3px 0 rgba(0, 0, 0, 0.38);
+      inset 1px 1px 3px rgba(255, 255, 255, 0.8),
+      0 0 0 0.5px rgba(0, 0, 0, 0.3),
+      0 0 8px color-mix(in srgb, currentColor 85%, transparent);
+    filter: brightness(1.15) saturate(1.25);
   }
 
   .spawn-preview-toggle {
