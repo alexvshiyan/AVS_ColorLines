@@ -478,6 +478,27 @@ export default function Home() {
     };
   }, [clearLineEffectTimers]);
 
+  // Unlock AudioContext on first user gesture (required on iOS/Android Chrome).
+  // Without this, the context stays suspended and no sound plays on mobile.
+  useEffect(() => {
+    const unlock = () => {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass();
+      }
+      if (audioContextRef.current.state === "suspended") {
+        void audioContextRef.current.resume();
+      }
+    };
+    document.addEventListener("pointerdown", unlock, { once: true, passive: true });
+    document.addEventListener("touchstart", unlock, { once: true, passive: true });
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+  }, []);
+
   // Stable ref so the popup useEffect can call playFanfare without ordering constraints
   const playFanfareRef = useRef<(() => void) | null>(null);
 
@@ -679,7 +700,7 @@ export default function Home() {
     const now = context.currentTime;
     const masterGain = context.createGain();
     masterGain.gain.setValueAtTime(0.0001, now);
-    masterGain.gain.exponentialRampToValueAtTime(0.11, now + 0.012);
+    masterGain.gain.exponentialRampToValueAtTime(0.45, now + 0.012);
     masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
     masterGain.connect(context.destination);
 
@@ -703,7 +724,7 @@ export default function Home() {
     spark.frequency.setValueAtTime(3140, now + 0.08);
     spark.frequency.exponentialRampToValueAtTime(1780, now + 0.18);
     sparkGain.gain.setValueAtTime(0.0001, now + 0.08);
-    sparkGain.gain.exponentialRampToValueAtTime(0.09, now + 0.095);
+    sparkGain.gain.exponentialRampToValueAtTime(0.35, now + 0.095);
     sparkGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
     spark.connect(sparkGain);
     sparkGain.connect(context.destination);
@@ -735,7 +756,7 @@ export default function Home() {
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(variant === "ready" ? 520 : variant === "blocked" ? 600 : 1450, now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.022 : 0.065, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(variant === "ready" ? 0.12 : variant === "blocked" ? 0.35 : 0.45, now + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     oscillator.connect(filter);
