@@ -234,3 +234,10 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Ensure AudioContext is unlocked on first tap/click on mobile (resume on any user interaction, not just sound-triggering events)
 - [x] Add a global click/touchstart listener that resumes the AudioContext once on first interaction
 - [x] Validate with build, checkpoint, and GitHub push
+
+## DOTS Toggle Persist + Color Tweaks
+
+- [x] Persist DOTS toggle state to localStorage (confirmed already working — reads and writes SPAWN_PREVIEW_STORAGE_KEY correctly)
+- [x] Make spawn-preview dots brighter: increased opacity 0.72→0.92, boosted glow 48%→70%, stronger highlight inset
+- [x] Separate red and magenta/purple marble colors: red shifted to orange-red (#ff7043 mid, #c62828 core), magenta shifted to violet-purple (#cc66ff mid, #7b00d4 core)
+- [x] Validate with build, checkpoint, and GitHub push

@@ -394,15 +394,15 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
     position: absolute;
     inset: 34%;
     z-index: 4;
-    opacity: 0.72;
+    opacity: 0.92;
     pointer-events: none;
     animation: spawnPreviewPulse 1.35s ease-in-out infinite alternate;
     box-shadow:
-      inset -4px -5px 8px rgba(0, 0, 0, 0.46),
-      inset 2px 2px 5px rgba(255, 255, 255, 0.5),
-      0 0 0 1px rgba(0, 0, 0, 0.62),
-      0 0 10px color-mix(in srgb, currentColor 48%, transparent),
-      2px 3px 0 rgba(0, 0, 0, 0.45);
+      inset -4px -5px 8px rgba(0, 0, 0, 0.38),
+      inset 2px 2px 5px rgba(255, 255, 255, 0.65),
+      0 0 0 1px rgba(0, 0, 0, 0.55),
+      0 0 12px color-mix(in srgb, currentColor 70%, transparent),
+      2px 3px 0 rgba(0, 0, 0, 0.38);
   }
 
   .spawn-preview-toggle {
@@ -459,8 +459,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   }
 
   .marble-red {
-    background: radial-gradient(circle at 32% 27%, #fff2dc 0 8%, #ff6b55 13%, #b40a0a 54%, #410000 100%);
-    color: #ff312b;
+    /* Shifted toward warm orange-red to clearly separate from magenta/purple */
+    background: radial-gradient(circle at 32% 27%, #fff3e0 0 8%, #ff7043 13%, #c62828 54%, #4a0000 100%);
+    color: #ff5722;
   }
 
   .marble-cyan {
@@ -479,8 +480,9 @@ When in doubt, ask: does this choice reinforce or dilute our design philosophy?
   }
 
   .marble-magenta {
-    background: radial-gradient(circle at 32% 27%, #fff1ff 0 8%, #ff66dd 13%, #a10085 55%, #36002e 100%);
-    color: #ff40d6;
+    /* Shifted toward violet-purple to clearly separate from red */
+    background: radial-gradient(circle at 32% 27%, #f5eeff 0 8%, #cc66ff 13%, #7b00d4 55%, #2a0050 100%);
+    color: #bb44ff;
   }
 
   .marble-blue {
