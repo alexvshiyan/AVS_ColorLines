@@ -420,7 +420,7 @@ export default function Home() {
   // Query to check top-5 qualification — only runs when game is over and score > 0
   const qualifiesQuery = trpc.leaderboard.qualifies.useQuery(
     { score },
-    { enabled: gameOver && score > 0 && isAuthenticated && submittedScore !== score },
+    { enabled: gameOver && score > 0 && submittedScore !== score },
   );
   const [message, setMessage] = useState<GameMessage>({
     tone: "ready",
@@ -1584,82 +1584,47 @@ export default function Home() {
                     : `Your score enters the global top 5. Enter your call sign to lock in the record.`}
                 </p>
 
-                {!isAuthenticated ? (
-                  <div className="grid gap-3">
-                    <p className="font-['IBM_Plex_Sans'] text-xs leading-5 text-stone-400">
-                      Log in to save your score to the global leaderboard and compete with other pilots.
-                    </p>
-                    <button
-                      type="button"
-                      className="leaderboard-save-button"
-                      onClick={() => {
-                        track("record_popup_login_clicked", { score, moves }, "leaderboard");
-                        window.location.href = getLoginUrl();
-                      }}
-                    >
-                      Log In to Save Score
-                    </button>
-                    <button
-                      type="button"
-                      className="leaderboard-save-button flex items-center justify-center gap-2 border-cyan-300/50 text-cyan-50"
-                      onClick={handleShareScore}
-                    >
-                      <Share2 size={14} /> Share Score
-                    </button>
-                    <button
-                      type="button"
-                      className="font-['IBM_Plex_Sans'] text-[0.65rem] uppercase tracking-[0.28em] text-stone-500 hover:text-stone-300 transition-colors"
-                      onClick={() => {
-                        track("record_popup_skipped", { score, moves }, "leaderboard");
-                        setShowScorePopup(false);
-                      }}
-                    >
-                      Skip — don't save
-                    </button>
-                  </div>
-                ) : (
-                  <form
-                    className="grid gap-3"
-                    onSubmit={(e) => { e.preventDefault(); handleLeaderboardSubmit(); }}
+                <form
+                  className="grid gap-3"
+                  onSubmit={(e) => { e.preventDefault(); handleLeaderboardSubmit(); }}
+                >
+                  <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
+                    Call sign / Player name
+                    <input
+                      value={playerName}
+                      onChange={(e) => handlePlayerNameChange(e.target.value)}
+                      maxLength={24}
+                      placeholder="Your name"
+                      className="leaderboard-input"
+                      aria-label="Player name for global leaderboard"
+                      autoFocus
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="leaderboard-save-button"
+                    disabled={!playerName.trim() || submitScoreMutation.isPending}
                   >
-                    <label className="grid gap-1 font-['IBM_Plex_Sans'] text-xs text-stone-300">
-                      Call sign / Player name
-                      <input
-                        value={playerName}
-                        onChange={(e) => handlePlayerNameChange(e.target.value)}
-                        maxLength={24}
-                        placeholder="Your name"
-                        className="leaderboard-input"
-                        aria-label="Player name for global leaderboard"
-                        autoFocus
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="leaderboard-save-button"
-                      disabled={!playerName.trim() || submitScoreMutation.isPending}
-                    >
-                      {submitScoreMutation.isPending ? 'Transmitting...' : 'Confirm Record'}
-                    </button>
-                    <button
-                      type="button"
-                      className="leaderboard-save-button flex items-center justify-center gap-2 border-cyan-300/50 text-cyan-50"
-                      onClick={handleShareScore}
-                    >
-                      <Share2 size={14} /> Share Score
-                    </button>
-                    <button
-                      type="button"
-                      className="font-['IBM_Plex_Sans'] text-[0.65rem] uppercase tracking-[0.28em] text-stone-500 hover:text-stone-300 transition-colors"
-                      onClick={() => {
-                        track("record_popup_skipped", { score, moves }, "leaderboard");
-                        setShowScorePopup(false);
-                      }}
-                    >
-                      Skip — don't save
-                    </button>
-                  </form>
-                )}
+                    {submitScoreMutation.isPending ? 'Transmitting...' : 'Confirm Record'}
+                  </button>
+                  <button
+                    type="button"
+                    className="leaderboard-save-button flex items-center justify-center gap-2 border-cyan-300/50 text-cyan-50"
+                    onClick={handleShareScore}
+                  >
+                    <Share2 size={14} /> Share Score
+                  </button>
+                  <button
+                    type="button"
+                    className="font-['IBM_Plex_Sans'] text-[0.65rem] uppercase tracking-[0.28em] text-stone-500 hover:text-stone-300 transition-colors"
+                    onClick={() => {
+                      track("record_popup_skipped", { score, moves }, "leaderboard");
+                      setShowScorePopup(false);
+                    }}
+                  >
+                    Skip — don't save
+                  </button>
+                </form>
               </div>
             </div>
           )}
