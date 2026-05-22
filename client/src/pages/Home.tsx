@@ -488,7 +488,16 @@ export default function Home() {
         audioContextRef.current = new AudioContextClass();
       }
       if (audioContextRef.current.state === "suspended") {
-        void audioContextRef.current.resume();
+        const ctx = audioContextRef.current;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.001);
+        void ctx.resume();
       }
     };
     document.addEventListener("pointerdown", unlock, { once: true, passive: true });
