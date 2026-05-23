@@ -152,14 +152,21 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
-// Build timestamp injected at compile time (format: YYYY-MM-DD HH:MM UTC)
+// Build timestamp injected at compile time (format: YYYY-MM-DD HH:MM UTC #HASH)
+// build-id.txt is updated on every checkpoint/commit so Manus deploy servers can read it
 const BUILD_VERSION = (() => {
   const date = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
   try {
+    // Try build-id.txt first (works on Manus deploy servers where .git is unavailable)
+    const buildIdFile = path.join(PROJECT_ROOT, 'build-id.txt');
+    if (fs.existsSync(buildIdFile)) {
+      const commit = fs.readFileSync(buildIdFile, 'utf-8').trim().slice(0, 7);
+      if (commit) return `${date} #${commit}`;
+    }
+    // Fallback: read from .git/HEAD directly
     const headFile = path.join(PROJECT_ROOT, '.git', 'HEAD');
     const headContent = fs.readFileSync(headFile, 'utf-8').trim();
     let commit = headContent;
-    
     if (headContent.startsWith('ref: ')) {
       const refPath = path.join(PROJECT_ROOT, '.git', headContent.slice(5));
       if (fs.existsSync(refPath)) {
@@ -168,7 +175,6 @@ const BUILD_VERSION = (() => {
     } else {
       commit = headContent.slice(0, 7);
     }
-    
     return `${date} #${commit}`;
   } catch {
     return date;
