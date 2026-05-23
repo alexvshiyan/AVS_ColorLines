@@ -423,15 +423,19 @@ export default function Home() {
       });
     },
   });
-  // Query to check top-5 qualification — only runs when game is over and score > 0
-  // gameKey is included in the input so the cache key changes on every new game,
-  // preventing stale cached results from a previous game with the same score.
-  // finalScore is set explicitly at game-over so the query always uses the correct value
-  // regardless of React batching order between setScore and setGameOver.
-  const qualifiesQuery = trpc.leaderboard.qualifies.useQuery(
-    { score: finalScore ?? 0, _gameKey: gameKey },
-    { enabled: finalScore !== null && finalScore > 0 && submittedScore !== finalScore },
-  );
+  // Mutation to check top-5 qualification — called explicitly at game-over so it always fires
+  // regardless of React batching, caching, or stale closures.
+  const checkQualifiesMutation = trpc.leaderboard.checkQualifies.useMutation({
+    onSuccess: (data) => {
+      setQualifyResult(data);
+      if (data.qualifies) {
+        window.setTimeout(() => {
+          setShowScorePopup(true);
+          playFanfareRef.current?.();
+        }, 600);
+      }
+    },
+  });
   const [message, setMessage] = useState<GameMessage>({
     tone: "ready",
     title: "Cabinet armed",
@@ -528,26 +532,7 @@ export default function Home() {
   // Stable ref so the popup useEffect can call playFanfare without ordering constraints
   const playFanfareRef = useRef<(() => void) | null>(null);
 
-  // Open score popup when qualification result arrives
-  useEffect(() => {
-    // Only proceed if we have data and the query is not loading
-    if (!qualifiesQuery.data || qualifiesQuery.isLoading) return;
-    
-    setQualifyResult(qualifiesQuery.data);
-    
-    // Check if score qualifies and hasn't been submitted yet
-    if (qualifiesQuery.data.qualifies && submittedScore !== finalScore) {
-      track("record_popup_shown", { score, moves, rank: qualifiesQuery.data.rank }, "leaderboard");
-      
-      // Small delay so the game-over message settles first, then show popup + fanfare
-      const t = window.setTimeout(() => {
-        setShowScorePopup(true);
-        playFanfareRef.current?.();
-      }, 600);
-      
-      return () => window.clearTimeout(t);
-    }
-  }, [qualifiesQuery.data, qualifiesQuery.isLoading, finalScore, moves, score, submittedScore, track]);
+
 
   useEffect(() => {
     if (score > bestScore) {
@@ -574,9 +559,11 @@ export default function Home() {
   useEffect(() => {
     if (gameOver || movingBall || clearingCells.length) return;
     if (hasAnyLegalMove(board)) return;
-    setFinalScore(scoreRef.current);
+    const fs = scoreRef.current;
+    setFinalScore(fs);
     setGameOver(true);
-    track("game_over", { score: scoreRef.current, moves, reason: "no_legal_move_detected" }, "game");
+    if (fs > 0 && submittedScore !== fs) checkQualifiesMutation.mutate({ score: fs });
+    track("game_over", { score: fs, moves, reason: "no_legal_move_detected" }, "game");
     setIsDemoRunning(false);
     if (demoTimerRef.current) {
       window.clearTimeout(demoTimerRef.current);
@@ -590,7 +577,7 @@ export default function Home() {
       title: "GAME OVER",
       body: "No legal move can be made from the current board. You can now save this final score.",
     });
-  }, [board, clearingCells.length, gameOver, movingBall, moves, score, track]);
+  }, [board, checkQualifiesMutation, clearingCells.length, gameOver, movingBall, moves, score, submittedScore, track]);
 
   const occupiedCells = useMemo(() => BOARD_SIZE * BOARD_SIZE - getEmptyCells(board).length, [board]);
   const fillPercent = Math.round((occupiedCells / (BOARD_SIZE * BOARD_SIZE)) * 100);
@@ -861,9 +848,11 @@ export default function Home() {
       const completeMoveWithoutClear = (settledBoard: Cell[][]) => {
         const remaining = getEmptyCells(settledBoard).length;
         if (!hasAnyLegalMove(settledBoard)) {
-          setFinalScore(scoreRef.current);
+          const fs = scoreRef.current;
+          setFinalScore(fs);
           setGameOver(true);
-          track("game_over", { score: scoreRef.current, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
+          if (fs > 0 && submittedScore !== fs) checkQualifiesMutation.mutate({ score: fs });
+          track("game_over", { score: fs, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
           setIsDemoRunning(false);
           if (demoTimerRef.current) {
             window.clearTimeout(demoTimerRef.current);
@@ -975,7 +964,7 @@ export default function Home() {
         setPreviewPositions(pickRandomEmptyPositions(incomingBoard, nextBalls.length));
       }
     },
-    [clearLineEffectTimers, moves, nextBalls, playClearZap, previewPositions, scheduleClearEffectStep, score, track],
+    [checkQualifiesMutation, clearLineEffectTimers, moves, nextBalls, playClearZap, previewPositions, scheduleClearEffectStep, score, submittedScore, track],
   );
 
   const executeMove = useCallback(

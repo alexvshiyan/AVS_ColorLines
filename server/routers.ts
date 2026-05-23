@@ -58,6 +58,9 @@ export const appRouter = router({
         _gameKey: z.number().int().optional(),
       }))
       .query(({ input }) => checkScoreQualifies(input.score)),
+    checkQualifies: publicProcedure
+      .input(z.object({ score: z.number().int().min(0) }))
+      .mutation(({ input }) => checkScoreQualifies(input.score)),
     submit: publicProcedure
       .input(
         z.object({
