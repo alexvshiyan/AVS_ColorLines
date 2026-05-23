@@ -375,6 +375,8 @@ export default function Home() {
   const scoreBurstIdRef = useRef(0);
   const [score, setScore] = useState(0);
   const [moves, setMoves] = useState(0);
+  // Incremented on every new game so the qualifies query cache key changes per game
+  const [gameKey, setGameKey] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [bestMoves, setBestMoves] = useState<number | null>(null);
   const MAX_UNDOS = 3;
@@ -418,8 +420,10 @@ export default function Home() {
     },
   });
   // Query to check top-5 qualification — only runs when game is over and score > 0
+  // gameKey is included in the input so the cache key changes on every new game,
+  // preventing stale cached results from a previous game with the same score.
   const qualifiesQuery = trpc.leaderboard.qualifies.useQuery(
-    { score },
+    { score, _gameKey: gameKey },
     { enabled: gameOver && score > 0 && submittedScore !== score },
   );
   const [message, setMessage] = useState<GameMessage>({
@@ -834,6 +838,7 @@ export default function Home() {
     setSubmittedScore(null);
     setShowScorePopup(false);
     setQualifyResult(null);
+    setGameKey((k) => k + 1);
     setUndoUsed(0);
     undoStackRef.current = [];
     setMessage({

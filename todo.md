@@ -249,3 +249,9 @@ Current repository target: `https://github.com/alexvshiyan/AVS_ColorLines`.
 - [x] Show Share button only when gameOver === true, placed near the status message widget
 - [x] Lighten blue marble: shift mid-tone from #657dff → #7b9fff, core from #1528b6 → #2040cc, so it stands out against the dark board
 - [x] Validate with build, checkpoint, and GitHub push
+
+## Leaderboard Popup Bug Fix
+
+- [x] Fix: popup does not appear when player qualifies for top-5 — root cause is React Query cache returning stale data when the same score is achieved in a subsequent game (qualifiesQuery.data reference doesn't change, so useEffect doesn't re-run)
+- [x] Add a `gameKey` counter that increments on each new game and include it in the qualifiesQuery input so the cache key changes per game
+- [x] Validate with TypeScript, build, checkpoint, and GitHub push

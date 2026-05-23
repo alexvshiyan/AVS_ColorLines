@@ -52,7 +52,11 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().int().min(1).max(5).optional() }).optional())
       .query(({ input }) => listLeaderboardRecords(normalizeLeaderboardLimit(input?.limit))),
     qualifies: publicProcedure
-      .input(z.object({ score: z.number().int().min(0) }))
+      .input(z.object({
+        score: z.number().int().min(0),
+        // _gameKey is a client-side cache-busting counter; ignored server-side.
+        _gameKey: z.number().int().optional(),
+      }))
       .query(({ input }) => checkScoreQualifies(input.score)),
     submit: publicProcedure
       .input(
