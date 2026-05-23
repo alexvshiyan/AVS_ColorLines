@@ -11,6 +11,8 @@ import { trpc } from "@/lib/trpc";
 import { hasAnyLegalMove, recommendColorLinesMove, type ColorLinesMoveRecommendation } from "@/lib/colorLinesRules";
 import InstallBanner from "@/components/InstallBanner";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 
 const BOARD_SIZE = 9;
 const STARTING_BALLS = 5;
@@ -393,6 +395,7 @@ export default function Home() {
   const [showScorePopup, setShowScorePopup] = useState(false);
   const [qualifyResult, setQualifyResult] = useState<{ qualifies: boolean; rank: number; totalRecords: number } | null>(null);
   const trpcUtils = trpc.useUtils();
+  const { user, isAuthenticated } = useAuth();
   const { onlinePlayers, track } = useAnalytics();
   const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
   const submitScoreMutation = trpc.leaderboard.submit.useMutation({
@@ -517,18 +520,24 @@ export default function Home() {
 
   // Open score popup when qualification result arrives
   useEffect(() => {
-    if (!qualifiesQuery.data) return;
+    // Only proceed if we have data and the query is not loading
+    if (!qualifiesQuery.data || qualifiesQuery.isLoading) return;
+    
     setQualifyResult(qualifiesQuery.data);
+    
+    // Check if score qualifies and hasn't been submitted yet
     if (qualifiesQuery.data.qualifies && submittedScore !== score) {
       track("record_popup_shown", { score, moves, rank: qualifiesQuery.data.rank }, "leaderboard");
+      
       // Small delay so the game-over message settles first, then show popup + fanfare
       const t = window.setTimeout(() => {
         setShowScorePopup(true);
         playFanfareRef.current?.();
       }, 600);
+      
       return () => window.clearTimeout(t);
     }
-  }, [moves, qualifiesQuery.data, score, submittedScore, track]);
+  }, [qualifiesQuery.data, qualifiesQuery.isLoading, moves, score, submittedScore, track]);
 
   useEffect(() => {
     if (score > bestScore) {
