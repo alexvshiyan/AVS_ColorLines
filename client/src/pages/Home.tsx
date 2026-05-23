@@ -1402,11 +1402,11 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-x-2">
                     {/* Left: Score + Moves */}
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                      <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                        <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400 flex-shrink-0">Score</p>
                         {isInTop5 && (
-                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.5rem] font-bold uppercase tracking-[0.14em] text-yellow-300 animate-pulse">
-                            <Zap size={8} /><span>Top 5</span>
+                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.45rem] sm:text-[0.5rem] font-bold uppercase tracking-[0.14em] text-yellow-300 animate-pulse flex-shrink-0">
+                            <Zap size={7} /><span>Top 5</span>
                           </span>
                         )}
                       </div>
