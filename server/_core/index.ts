@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { generalLimiter, leaderboardLimiter, authLimiter, analyticsLimiter } from "./rateLimiting";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,11 +37,18 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Rate limiting middleware (security)
+  app.use(generalLimiter); // Apply general rate limiting to all requests
+
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  // tRPC API
+
+  // tRPC API with rate limiting
   app.use(
     "/api/trpc",
+    leaderboardLimiter, // Stricter limits for leaderboard submissions
+    analyticsLimiter, // Generous limits for analytics
     createExpressMiddleware({
       router: appRouter,
       createContext,

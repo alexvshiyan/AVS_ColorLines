@@ -153,7 +153,27 @@ function vitePluginManusDebugCollector(): Plugin {
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 // Build timestamp injected at compile time (format: YYYY-MM-DD HH:MM UTC)
-const BUILD_VERSION = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+const BUILD_VERSION = (() => {
+  const date = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  try {
+    const headFile = path.join(PROJECT_ROOT, '.git', 'HEAD');
+    const headContent = fs.readFileSync(headFile, 'utf-8').trim();
+    let commit = headContent;
+    
+    if (headContent.startsWith('ref: ')) {
+      const refPath = path.join(PROJECT_ROOT, '.git', headContent.slice(5));
+      if (fs.existsSync(refPath)) {
+        commit = fs.readFileSync(refPath, 'utf-8').trim().slice(0, 7);
+      }
+    } else {
+      commit = headContent.slice(0, 7);
+    }
+    
+    return `${date} #${commit}`;
+  } catch {
+    return date;
+  }
+})();
 
 export default defineConfig({
   define: {
