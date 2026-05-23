@@ -9,6 +9,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { generalLimiter, leaderboardLimiter, authLimiter, analyticsLimiter } from "./rateLimiting";
+import { initSentry, Sentry } from "./sentry";
+
+initSentry();
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -60,6 +63,9 @@ async function startServer() {
   } else {
     serveStatic(app);
   }
+
+  // Sentry error handler must be after routes
+  Sentry.setupExpressErrorHandler(app);
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
