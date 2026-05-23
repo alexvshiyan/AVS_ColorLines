@@ -1319,6 +1319,9 @@ export default function Home() {
                 <span className="flex items-center gap-1 border border-cyan-300/25 bg-cyan-950/30 px-1.5 py-1 font-['IBM_Plex_Sans'] text-[0.52rem] uppercase tracking-[0.12em] text-cyan-100/80 shadow-[2px_2px_0_#000] sm:gap-1.5 sm:px-2 sm:text-[0.58rem] sm:tracking-[0.16em]">
                   <Users size={12} /> Online {onlinePlayers ?? "—"}
                 </span>
+                <span className="font-['IBM_Plex_Sans'] text-[0.5rem] uppercase tracking-[0.08em] text-amber-100/40 select-none">
+                  #{__BUILD_VERSION__}
+                </span>
                 <span className="hidden font-['IBM_Plex_Sans'] text-[0.58rem] uppercase tracking-[0.12em] text-amber-100/30 select-none lg:inline">
                   build {__BUILD_VERSION__}
                 </span>
