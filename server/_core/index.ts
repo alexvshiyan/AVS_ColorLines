@@ -45,9 +45,10 @@ async function startServer() {
   registerOAuthRoutes(app);
 
   // tRPC API with rate limiting
+  // leaderboardLimiter only on the submit mutation — NOT on list/qualifies reads
+  app.use("/api/trpc/leaderboard.submit", leaderboardLimiter);
   app.use(
     "/api/trpc",
-    leaderboardLimiter, // Stricter limits for leaderboard submissions
     analyticsLimiter, // Generous limits for analytics
     createExpressMiddleware({
       router: appRouter,
