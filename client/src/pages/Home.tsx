@@ -1398,15 +1398,42 @@ export default function Home() {
 
               <aside className="fit-status-rail grid gap-2">
                 {/* Score section */}
-                <div className="arcade-slab fit-side-card px-2 py-1.5">
-                  <div className="grid grid-cols-2 gap-x-2">
+                <div className="arcade-slab fit-side-card px-1.5 py-1">
+                  {/* Mobile: Stacked layout */}
+                  <div className="sm:hidden space-y-1">
+                    {/* Score row with Top 5 inline */}
+                    <div>
+                      <div className="flex items-center gap-0.5 whitespace-nowrap mb-0.5">
+                        <p className="font-['IBM_Plex_Sans'] text-[0.5rem] uppercase tracking-[0.28em] text-stone-400 flex-shrink-0">Score</p>
+                        {isInTop5 && (
+                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.4rem] font-bold uppercase tracking-[0.1em] text-yellow-300 animate-pulse flex-shrink-0">
+                            <Zap size={6} /><span>Top 5</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className={`font-['Bebas_Neue'] text-2xl leading-none tracking-[0.06em] tabular-nums transition-colors duration-500 ${isInTop5 ? 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]' : 'text-amber-100'}`}>{score}</div>
+                    </div>
+                    {/* Moves + Best row */}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <p className="font-['IBM_Plex_Sans'] text-[0.5rem] uppercase tracking-[0.22em] text-stone-400">Moves</p>
+                        <div className="font-['Bebas_Neue'] text-xl tracking-[0.06em] text-stone-200">{moves}</div>
+                      </div>
+                      <div className="flex-1 border-l border-stone-700/60 pl-2">
+                        <p className="font-['IBM_Plex_Sans'] text-[0.5rem] uppercase tracking-[0.28em] text-stone-400">Best</p>
+                        <div className="font-['Bebas_Neue'] text-xl tracking-[0.06em] text-amber-100">{bestScore}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Desktop: Original grid layout */}
+                  <div className="hidden sm:grid grid-cols-2 gap-x-2">
                     {/* Left: Score + Moves */}
                     <div>
-                      <div className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400 flex-shrink-0">Score</p>
                         {isInTop5 && (
-                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.45rem] sm:text-[0.5rem] font-bold uppercase tracking-[0.14em] text-yellow-300 animate-pulse flex-shrink-0">
-                            <Zap size={7} /><span>Top 5</span>
+                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.5rem] font-bold uppercase tracking-[0.14em] text-yellow-300 animate-pulse flex-shrink-0">
+                            <Zap size={8} /><span>Top 5</span>
                           </span>
                         )}
                       </div>
