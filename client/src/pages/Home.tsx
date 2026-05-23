@@ -1402,14 +1402,15 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-x-2">
                     {/* Left: Score + Moves */}
                     <div>
-                      <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.28em] text-stone-400">Score</p>
+                        {isInTop5 && (
+                          <span className="flex items-center gap-0.5 font-['IBM_Plex_Sans'] text-[0.5rem] font-bold uppercase tracking-[0.14em] text-yellow-300 animate-pulse">
+                            <Zap size={8} /><span>Top 5</span>
+                          </span>
+                        )}
+                      </div>
                       <div className={`fit-score font-['Bebas_Neue'] leading-none tracking-[0.06em] tabular-nums transition-colors duration-500 ${isInTop5 ? 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.6)]' : 'text-amber-100'}`}>{score}</div>
-                      {isInTop5 && (
-                        <div className="mt-0.5 flex items-center gap-1 font-['IBM_Plex_Sans'] text-[0.6rem] font-bold uppercase tracking-[0.18em] text-yellow-300 animate-pulse">
-                          <Zap size={10} />
-                          <span>Top 5</span>
-                        </div>
-                      )}
                       <div className="mt-1 font-['IBM_Plex_Sans'] text-[0.55rem] uppercase tracking-[0.22em] text-stone-400">
                         Moves
                         <span className="ml-1.5 font-['Bebas_Neue'] text-sm tracking-[0.06em] text-stone-200">{moves}</span>
