@@ -1567,11 +1567,11 @@ export default function Home() {
           {/* ── Score Qualification Pop-up ── */}
           {showScorePopup && (
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm md:items-center md:justify-center"
               onClick={(e) => { if (e.target === e.currentTarget) setShowScorePopup(false); }}
             >
               <div
-                className="relative mx-4 w-full max-w-sm border border-amber-300/40 bg-[#0d0d0d] p-6 shadow-[12px_12px_0_rgba(255,196,97,.18)] outline outline-1 outline-amber-300/10"
+                className="relative mx-4 w-full max-w-sm border border-amber-300/40 bg-[#0d0d0d] p-6 shadow-[12px_12px_0_rgba(255,196,97,.18)] outline outline-1 outline-amber-300/10 my-auto"
                 style={{ backgroundImage: `linear-gradient(rgba(10,10,10,.92), rgba(10,10,10,.97)), url(${PANEL_ASSET})` }}
               >
                 {/* Chamfer corner decoration */}
@@ -1610,6 +1610,7 @@ export default function Home() {
                       className="leaderboard-input"
                       aria-label="Player name for global leaderboard"
                       autoFocus
+                      onFocus={(e) => { e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }}
                     />
                   </label>
                   <button
