@@ -373,7 +373,11 @@ export default function Home() {
   const demoTimerRef = useRef<number | null>(null);
   const clearTimerRefs = useRef<number[]>([]);
   const scoreBurstIdRef = useRef(0);
+  // scoreRef mirrors score state synchronously so game-over logic always sees the latest value
+  const scoreRef = useRef(0);
   const [score, setScore] = useState(0);
+  // finalScore is set explicitly when the game ends, so qualifiesQuery always uses the correct value
+  const [finalScore, setFinalScore] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   // Incremented on every new game so the qualifies query cache key changes per game
   const [gameKey, setGameKey] = useState(0);
@@ -402,7 +406,7 @@ export default function Home() {
   const leaderboardQuery = trpc.leaderboard.list.useQuery({ limit: 5 });
   const submitScoreMutation = trpc.leaderboard.submit.useMutation({
     onSuccess: () => {
-      setSubmittedScore(score);
+      setSubmittedScore(finalScore);
       setShowScorePopup(false);
       void trpcUtils.leaderboard.list.invalidate();
       setMessage({
@@ -422,9 +426,11 @@ export default function Home() {
   // Query to check top-5 qualification — only runs when game is over and score > 0
   // gameKey is included in the input so the cache key changes on every new game,
   // preventing stale cached results from a previous game with the same score.
+  // finalScore is set explicitly at game-over so the query always uses the correct value
+  // regardless of React batching order between setScore and setGameOver.
   const qualifiesQuery = trpc.leaderboard.qualifies.useQuery(
-    { score, _gameKey: gameKey },
-    { enabled: gameOver && score > 0 && submittedScore !== score },
+    { score: finalScore ?? 0, _gameKey: gameKey },
+    { enabled: finalScore !== null && finalScore > 0 && submittedScore !== finalScore },
   );
   const [message, setMessage] = useState<GameMessage>({
     tone: "ready",
@@ -530,7 +536,7 @@ export default function Home() {
     setQualifyResult(qualifiesQuery.data);
     
     // Check if score qualifies and hasn't been submitted yet
-    if (qualifiesQuery.data.qualifies && submittedScore !== score) {
+    if (qualifiesQuery.data.qualifies && submittedScore !== finalScore) {
       track("record_popup_shown", { score, moves, rank: qualifiesQuery.data.rank }, "leaderboard");
       
       // Small delay so the game-over message settles first, then show popup + fanfare
@@ -541,7 +547,7 @@ export default function Home() {
       
       return () => window.clearTimeout(t);
     }
-  }, [qualifiesQuery.data, qualifiesQuery.isLoading, moves, score, submittedScore, track]);
+  }, [qualifiesQuery.data, qualifiesQuery.isLoading, finalScore, moves, score, submittedScore, track]);
 
   useEffect(() => {
     if (score > bestScore) {
@@ -568,9 +574,9 @@ export default function Home() {
   useEffect(() => {
     if (gameOver || movingBall || clearingCells.length) return;
     if (hasAnyLegalMove(board)) return;
-
+    setFinalScore(scoreRef.current);
     setGameOver(true);
-    track("game_over", { score, moves, reason: "no_legal_move_detected" }, "game");
+    track("game_over", { score: scoreRef.current, moves, reason: "no_legal_move_detected" }, "game");
     setIsDemoRunning(false);
     if (demoTimerRef.current) {
       window.clearTimeout(demoTimerRef.current);
@@ -832,7 +838,9 @@ export default function Home() {
     setClearingDirections({});
     setScoreBursts([]);
     setMovingBall(null);
+    scoreRef.current = 0;
     setScore(0);
+    setFinalScore(null);
     setMoves(0);
     setGameOver(false);
     setSubmittedScore(null);
@@ -853,8 +861,9 @@ export default function Home() {
       const completeMoveWithoutClear = (settledBoard: Cell[][]) => {
         const remaining = getEmptyCells(settledBoard).length;
         if (!hasAnyLegalMove(settledBoard)) {
+          setFinalScore(scoreRef.current);
           setGameOver(true);
-          track("game_over", { score, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
+          track("game_over", { score: scoreRef.current, moves, reason: remaining === 0 ? "board_full" : "no_legal_path" }, "game");
           setIsDemoRunning(false);
           if (demoTimerRef.current) {
             window.clearTimeout(demoTimerRef.current);
@@ -913,7 +922,7 @@ export default function Home() {
           setClearingCells([]);
           setClearingPhase("idle");
           setClearingDirections({});
-          setScore((value) => value + gained);
+          setScore((value) => { scoreRef.current = value + gained; return value + gained; });
           onComplete(clearedBoard);
         }, 520);
         scheduleClearEffectStep(() => {
@@ -1105,6 +1114,7 @@ export default function Home() {
     setClearingPhase("idle");
     setClearingDirections({});
     setScoreBursts([]);
+    scoreRef.current = snapshot.score;
     setScore(snapshot.score);
     setMoves(snapshot.moves);
     setSelected(null);
@@ -1226,22 +1236,23 @@ export default function Home() {
   const handleLeaderboardSubmit = useCallback(
     (event?: FormEvent<HTMLFormElement>) => {
       if (event) event.preventDefault();
-      if (!gameOver || score <= 0 || submitScoreMutation.isPending || submittedScore === score) return;
+      const fs = finalScore ?? 0;
+      if (!gameOver || fs <= 0 || submitScoreMutation.isPending || submittedScore === fs) return;
       if (playerName.trim()) {
         window.localStorage.setItem(PLAYER_NAME_STORAGE_KEY, playerName);
       }
-      track("score_submit_clicked", { score, moves, hasPlayerName: Boolean(playerName.trim()) }, "leaderboard");
+      track("score_submit_clicked", { score: fs, moves, hasPlayerName: Boolean(playerName.trim()) }, "leaderboard");
       submitScoreMutation.mutate({
         playerName,
-        score,
+        score: fs,
         moves,
       });
     },
-    [gameOver, moves, playerName, score, submitScoreMutation, submittedScore, track],
+    [finalScore, gameOver, moves, playerName, submitScoreMutation, submittedScore, track],
   );
 
   const leaderboardRecords = leaderboardQuery.data ?? [];
-  const canSubmitScore = gameOver && score > 0 && submittedScore !== score;
+  const canSubmitScore = finalScore !== null && finalScore > 0 && submittedScore !== finalScore;
   const previewByCell = useMemo(() => {
     const cells = new Map<string, ColorId>();
     previewPositions.forEach((position, index) => {
